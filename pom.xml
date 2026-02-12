@@ -18,7 +18,7 @@
     </properties>
 
     <build>
-        <finalName>H-Manhunt-${project.version}-${author}</finalName>
+        <finalName>H-Manhunt-${project.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
