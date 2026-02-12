@@ -15,7 +15,7 @@ public class DropListener implements Listener {
 
     @EventHandler
     public void DropEvent(PlayerDropItemEvent e) {
-        if ((inGame || waitingForStart) && isHunter(e.getPlayer().getName()) && isCompass(e.getItemDrop().getItemStack())) {
+        if ((inGame || waitingForStart) && isHunter(e.getPlayer().getName()) && waypointManager.isCompass(e.getItemDrop().getItemStack())) {
             e.setCancelled(true);
         }
     }

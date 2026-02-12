@@ -4,15 +4,10 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 
 public class Speedrunner extends ManhuntPlayer {
-    // Number of lives the speedrunner has
     private int lives;
-    // Location in the overworld
     private Location locWorld;
-    // Location in the nether
     private Location locNether;
-    // Location in the end
     private Location locTheEnd;
-    // Gamemode before start
     private GameMode gameMode;
 
     public Speedrunner(String name) {

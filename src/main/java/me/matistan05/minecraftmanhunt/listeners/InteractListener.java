@@ -10,6 +10,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -24,25 +25,28 @@ public class InteractListener implements Listener {
         Bukkit.getPluginManager().registerEvents(this, main);
     }
 
-    // left click - track nearest mode, right click - cycle through speedrunners
-
     @EventHandler
     public void InteractEvent(PlayerInteractEvent e) {
-        if (!inGame && !waitingForStart) return;
+        if (!inGame && !waitingForStart)
+            return;
         ItemStack item = e.getItem();
-        if (!isCompass(item)) return;
+        if (!waypointManager.isCompass(item))
+            return;
         Player p = e.getPlayer();
-        if (!isHunter(p.getName())) return;
+        if (!isHunter(p.getName()))
+            return;
         Action a = e.getAction();
         if (a == Action.LEFT_CLICK_AIR || a == Action.LEFT_CLICK_BLOCK) {
-            if (!main.getConfig().getBoolean("trackNearestMode")) return;
+            if (!main.getConfig().getBoolean("trackNearestMode"))
+                return;
             getHunter(p.getName()).setCompassMode(0);
         } else if (a == Action.RIGHT_CLICK_AIR || a == Action.RIGHT_CLICK_BLOCK) {
             if (main.getConfig().getBoolean("compassMenu")) {
                 if (getHunter(p.getName()).getCompassMode() == 0) {
                     getHunter(p.getName()).setCompassMode(1);
                 } else {
-                    Inventory compassInventory = Bukkit.createInventory(p, 54, ChatColor.RED + "Choose a speedrunner!");
+                    Inventory compassInventory = Bukkit.createInventory(p, 54,
+                            MiniMessage.miniMessage().deserialize("<red>Выберите спидраннера!</red>"));
                     for (int i = 0; i < speedrunners.size(); i++) {
                         OfflinePlayer player = Bukkit.getOfflinePlayer(speedrunners.get(i).getName());
                         ItemStack head = new ItemStack(Material.PLAYER_HEAD, 1);

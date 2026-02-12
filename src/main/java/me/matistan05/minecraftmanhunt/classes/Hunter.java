@@ -1,9 +1,7 @@
 package me.matistan05.minecraftmanhunt.classes;
 
-public class Hunter extends ManhuntPlayer{
-    // 0 = tracking nearest speedrunner, 1 = tracking specific speedrunner
+public class Hunter extends ManhuntPlayer {
     private int compassMode;
-    // If compassMode is 1, this is the name of the speedrunner being tracked
     private String whichSpeedrunner;
 
     public Hunter(String name) {
@@ -26,5 +24,15 @@ public class Hunter extends ManhuntPlayer{
 
     public void setWhichSpeedrunner(String whichSpeedrunner) {
         this.whichSpeedrunner = whichSpeedrunner;
+    }
+
+    private long lastWarpShadows = 0;
+
+    public long getLastWarpShadows() {
+        return lastWarpShadows;
+    }
+
+    public void setLastWarpShadows(long lastWarpShadows) {
+        this.lastWarpShadows = lastWarpShadows;
     }
 }

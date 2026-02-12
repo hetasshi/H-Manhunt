@@ -1,5 +1,9 @@
 package me.matistan05.minecraftmanhunt.commands;
 
+import me.matistan05.minecraftmanhunt.managers.RadarManager;
+import me.matistan05.minecraftmanhunt.managers.TeamManager;
+import me.matistan05.minecraftmanhunt.managers.WaypointManager;
+
 import me.matistan05.minecraftmanhunt.Main;
 import me.matistan05.minecraftmanhunt.classes.Hunter;
 import me.matistan05.minecraftmanhunt.classes.Speedrunner;
@@ -10,19 +14,20 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.CompassMeta;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
+
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.Team;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
+import java.time.Duration;
 
 import java.util.*;
 
+@SuppressWarnings("deprecation")
 public class ManhuntCommand implements CommandExecutor {
     private static Main main;
     public static List<Hunter> hunters = new ArrayList<>();
@@ -34,260 +39,322 @@ public class ManhuntCommand implements CommandExecutor {
     private static BukkitTask starting;
     public static BukkitTask game;
     public static BukkitTask pausing, unpausing;
-    public static ItemStack compass;
     public static List<String> pausePlayers = new LinkedList<>();
     public static List<String> unpausePlayers = new LinkedList<>();
     public static Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
     public static Player findPlayer;
+    public static TeamManager teamManager;
+    public static WaypointManager waypointManager;
+    public static RadarManager radarManager;
 
     public ManhuntCommand(Main main) {
         ManhuntCommand.main = main;
+        teamManager = new TeamManager(main);
+        waypointManager = new WaypointManager(main);
+        radarManager = new RadarManager(main);
     }
+
+    private static final MiniMessage mm = MiniMessage.miniMessage();
 
     @Override
     public boolean onCommand(CommandSender p, Command cmd, String label, String[] args) {
         if (args.length == 0) {
-            p.sendMessage(ChatColor.RED + "You must type an argument. For help, type: /manhunt help");
+            p.sendMessage(mm.deserialize(
+                    "<gray>Вы должны ввести аргумент. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
         } else if (args[0].equals("help")) {
             if (!p.hasPermission("manhunt.help") && main.getConfig().getBoolean("usePermissions")) {
-                p.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+                p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
             if (args.length != 1) {
-                p.sendMessage(ChatColor.RED + "Wrong usage of this command. For help, type: /manhunt help");
+                p.sendMessage(mm.deserialize(
+                        "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                 return true;
             }
-            p.sendMessage(ChatColor.GREEN + "------- " + ChatColor.WHITE + " Minecraft Manhunt " + ChatColor.GREEN + "----------");
-            p.sendMessage(ChatColor.BLUE + "Here is a list of manhunt commands:");
-            p.sendMessage(ChatColor.YELLOW + "/manhunt add <role> <player> <player> ... " + ChatColor.AQUA + "- adds players to a game with roles");
-            p.sendMessage(ChatColor.YELLOW + "/manhunt add <role> @a " + ChatColor.AQUA + "- adds all players with roles");
-            p.sendMessage(ChatColor.YELLOW + "/manhunt remove <player> <player> ..." + ChatColor.AQUA + "- removes players from a  game");
-            p.sendMessage(ChatColor.YELLOW + "/manhunt remove @a " + ChatColor.AQUA + "- removes all players");
-            p.sendMessage(ChatColor.YELLOW + "/manhunt start " + ChatColor.AQUA + "- starts a manhunt game");
-            p.sendMessage(ChatColor.YELLOW + "/manhunt reset " + ChatColor.AQUA + "- resets a manhunt game");
-            p.sendMessage(ChatColor.YELLOW + "/manhunt pause " + ChatColor.AQUA + "- pauses a manhunt game");
-            p.sendMessage(ChatColor.YELLOW + "/manhunt unpause " + ChatColor.AQUA + "- resumes a manhunt game");
-            p.sendMessage(ChatColor.YELLOW + "/manhunt list " + ChatColor.AQUA + "- shows a list of players in a manhunt game with their roles");
-            p.sendMessage(ChatColor.YELLOW + "/manhunt rules <rule> value(optional) " + ChatColor.AQUA + "- changes some additional rules of the game (in config.yml)");
-            p.sendMessage(ChatColor.YELLOW + "/manhunt help " + ChatColor.AQUA + "- shows a list of manhunt commands");
-            p.sendMessage(ChatColor.GREEN + "----------------------------------");
+            p.sendMessage(mm.deserialize(
+                    "<gradient:#ff0000:#ffffff><strikethrough>-------</strikethrough></gradient> <red>Minecraft Manhunt</red> <gradient:#ffffff:#ff0000><strikethrough>-------</strikethrough></gradient>"));
+            p.sendMessage(mm.deserialize("<gray>Modded by <gradient:#ff0000:#aa0000>hetashi</gradient>"));
+            p.sendMessage(mm.deserialize(""));
+            p.sendMessage(mm.deserialize("<gradient:#ffcccc:#ffffff>Список команд:</gradient>"));
+            p.sendMessage(mm.deserialize(
+                    "<dark_gray>» <gradient:#ff4444:#ffaaaa>/manhunt add <роль> <игрок></gradient> <gray>- добавить игрока"));
+            p.sendMessage(mm.deserialize(
+                    "<dark_gray>» <gradient:#ff4444:#ffaaaa>/manhunt add <роль> @a</gradient> <gray>- добавить всех"));
+            p.sendMessage(mm.deserialize(
+                    "<dark_gray>» <gradient:#ff4444:#ffaaaa>/manhunt remove <игрок></gradient> <gray>- удалить игрока"));
+            p.sendMessage(mm.deserialize(
+                    "<dark_gray>» <gradient:#ff4444:#ffaaaa>/manhunt remove @a</gradient> <gray>- удалить всех"));
+            p.sendMessage(mm.deserialize(
+                    "<dark_gray>» <gradient:#ff0000:#ff5555><bold>/manhunt start</bold></gradient> <gray>- запуск игры"));
+            p.sendMessage(mm.deserialize(
+                    "<dark_gray>» <gradient:#aa0000:#ff0000><bold>/manhunt reset</bold></gradient> <gray>- сброс игры"));
+            p.sendMessage(
+                    mm.deserialize("<dark_gray>» <gradient:#ff8888:#ffcccc>/manhunt pause</gradient> <gray>- пауза"));
+            p.sendMessage(mm.deserialize(
+                    "<dark_gray>» <gradient:#ff8888:#ffcccc>/manhunt unpause</gradient> <gray>- продолжить"));
+            p.sendMessage(mm.deserialize(
+                    "<dark_gray>» <gradient:#ff8888:#ffcccc>/manhunt list</gradient> <gray>- список игроков"));
+            p.sendMessage(
+                    mm.deserialize("<dark_gray>» <gradient:#ff8888:#ffcccc>/manhunt rules</gradient> <gray>- правила"));
+            p.sendMessage(mm.deserialize(
+                    "<gradient:#ff0000:#ffffff><strikethrough>----------------------------------</strikethrough></gradient>"));
         } else if (args[0].equals("rules")) {
             if (!p.hasPermission("manhunt.rules") && main.getConfig().getBoolean("usePermissions")) {
-                p.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+                p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
             if (args.length != 3 && args.length != 2) {
-                p.sendMessage(ChatColor.RED + "Wrong usage of this command. For help, type: /manhunt help");
+                p.sendMessage(mm.deserialize(
+                        "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                 return true;
             }
             if (!main.getConfig().contains(args[1])) {
-                p.sendMessage(ChatColor.RED + "There is no such rule. See the config.yml file for more information.");
+                p.sendMessage(mm.deserialize("<red>Такого правила нет. Проверьте файл config.yml."));
                 return true;
             }
             if (args.length == 2) {
-                p.sendMessage(ChatColor.AQUA + "The value of the rule " + args[1] + " is: " + main.getConfig().get(args[1]));
+                p.sendMessage(mm.deserialize("<gray>Значение правила <gradient:#ff4444:#ffaaaa>" + args[1]
+                        + "</gradient> это: <white>" + main.getConfig().get(args[1])));
                 return true;
             }
-            if (args[1].equals("headStartDuration") || args[1].equals("speedrunnersLives")) {
+            if (args[1].equals("headStartDuration") || args[1].equals("speedrunnersLives")
+                    || args[1].equals("warpShadowsCooldown") || args[1].equals("warpShadowsMaxDistance")
+                    || args[1].equals("warpShadowsBufferZone")) {
                 try {
                     main.getConfig().set(args[1], Integer.parseInt(args[2]));
                 } catch (NumberFormatException e) {
-                    p.sendMessage(ChatColor.RED + "The value must be a number!");
+                    p.sendMessage(mm.deserialize("<red>Значение должно быть числом!"));
                     return true;
                 }
             } else {
                 if (!args[2].equals("true") && !args[2].equals("false")) {
-                    p.sendMessage(ChatColor.RED + "The value must be true or false!");
+                    p.sendMessage(mm.deserialize("<red>Значение должно быть true или false!"));
                     return true;
                 }
                 main.getConfig().set(args[1], Boolean.parseBoolean(args[2]));
             }
             main.saveConfig();
-            p.sendMessage(ChatColor.AQUA + "The value of the rule " + args[1] + " has been changed to: " + args[2]);
+            p.sendMessage(mm.deserialize("<gray>Значение правила <gradient:#ff4444:#ffaaaa>" + args[1]
+                    + "</gradient> было изменено на: <white>" + args[2]));
         } else if (args[0].equals("add")) {
             if (!p.hasPermission("manhunt.add") && main.getConfig().getBoolean("usePermissions")) {
-                p.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+                p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
             if (args.length < 3) {
-                p.sendMessage(ChatColor.RED + "Wrong usage of this command. For help, type: /manhunt help");
+                p.sendMessage(mm.deserialize(
+                        "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                 return true;
             }
             int count = 0;
             if (args[1].equals("speedrunner")) {
                 if (args[2].equals("@a")) {
                     if (args.length != 3) {
-                        p.sendMessage(ChatColor.RED + "Wrong usage of this command. For help, type: /manhunt help");
+                        p.sendMessage(mm.deserialize(
+                                "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                         return true;
                     }
                     for (Player target : Bukkit.getOnlinePlayers()) {
-                        if (isSpeedrunner(target.getName())) continue;
+                        if (isSpeedrunner(target.getName()))
+                            continue;
                         if (isHunter(target.getName())) {
-                            if (inGame || waitingForStart) continue;
+                            if (inGame || waitingForStart)
+                                continue;
                             hunters.removeIf(h -> h.getName().equals(target.getName()));
                         }
                         speedrunners.add(new Speedrunner(target.getName()));
-                        if (inGame || waitingForStart) setUpPlayer(target.getName(), false);
+                        if (inGame || waitingForStart)
+                            setUpPlayer(target.getName(), false);
                         count++;
                     }
                     if (count > 0) {
-                        p.sendMessage(ChatColor.AQUA + "Successfully added " + count + " new speedrunner" + (count == 1 ? "" : "s") + " to the game!");
+                        p.sendMessage(mm.deserialize("<gray>Успешно добавлено <gradient:#ff4444:#ffaaaa>" + count
+                                + "</gradient> новых спидраннеров в игру!"));
                     } else {
-                        p.sendMessage(ChatColor.RED + "No speedrunner was added!");
+                        p.sendMessage(mm.deserialize("<red>Спидраннеры не были добавлены!"));
                     }
                     return true;
                 }
                 for (int i = 2; i < args.length; i++) {
                     Player target = Bukkit.getPlayerExact(args[i]);
-                    if (target == null || isSpeedrunner(target.getName())) continue;
+                    if (target == null || isSpeedrunner(target.getName()))
+                        continue;
                     if (isHunter(target.getName())) {
-                        if (inGame || waitingForStart) continue;
+                        if (inGame || waitingForStart)
+                            continue;
                         hunters.removeIf(h -> h.getName().equals(target.getName()));
                     }
                     speedrunners.add(new Speedrunner(target.getName()));
-                    if (inGame || waitingForStart) setUpPlayer(target.getName(), false);
+                    if (inGame || waitingForStart)
+                        setUpPlayer(target.getName(), false);
                     count++;
                 }
                 if (count > 0) {
-                    p.sendMessage(ChatColor.AQUA + "Successfully added " + count + " new speedrunner" + (count == 1 ? "" : "s") + " to the game!");
+                    p.sendMessage(mm.deserialize("<gray>Успешно добавлено <gradient:#ff4444:#ffaaaa>" + count
+                            + "</gradient> новых спидраннеров в игру!"));
                 } else {
-                    p.sendMessage(ChatColor.RED + "Could not add " + (args.length == 3 ? "this player!" : "these players!"));
+                    p.sendMessage(mm.deserialize("<red>Не удалось добавить этих игроков!"));
                 }
                 return true;
             }
             if (args[1].equals("hunter")) {
                 if (args[2].equals("@a")) {
                     if (args.length != 3) {
-                        p.sendMessage(ChatColor.RED + "Wrong usage of this command. For help, type: /manhunt help");
+                        p.sendMessage(mm.deserialize(
+                                "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                         return true;
                     }
                     for (Player target : Bukkit.getOnlinePlayers()) {
-                        if (isHunter(target.getName())) continue;
+                        if (isHunter(target.getName()))
+                            continue;
                         if (isSpeedrunner(target.getName())) {
-                            if (inGame || waitingForStart) continue;
+                            if (inGame || waitingForStart)
+                                continue;
                             speedrunners.removeIf(h -> h.getName().equals(target.getName()));
                         }
                         hunters.add(new Hunter(target.getName()));
-                        if (inGame || waitingForStart) setUpPlayer(target.getName(), true);
+                        if (inGame || waitingForStart)
+                            setUpPlayer(target.getName(), true);
                         count++;
                     }
                     if (count > 0) {
-                        p.sendMessage(ChatColor.AQUA + "Successfully added " + count + " new hunter" + (count == 1 ? "" : "s") + " to the game!");
+                        p.sendMessage(mm.deserialize("<gray>Успешно добавлено <gradient:#ff4444:#ffaaaa>" + count
+                                + "</gradient> новых хантеров в игру!"));
                     } else {
-                        p.sendMessage(ChatColor.RED + "No hunter was added!");
+                        p.sendMessage(mm.deserialize("<red>Хантеры не были добавлены!"));
                     }
                     return true;
                 }
                 for (int i = 2; i < args.length; i++) {
                     Player target = Bukkit.getPlayerExact(args[i]);
-                    if (target == null || isHunter(target.getName())) continue;
+                    if (target == null || isHunter(target.getName()))
+                        continue;
                     if (isSpeedrunner(target.getName())) {
-                        if (inGame || waitingForStart) continue;
+                        if (inGame || waitingForStart)
+                            continue;
                         speedrunners.removeIf(h -> h.getName().equals(target.getName()));
                     }
                     hunters.add(new Hunter(target.getName()));
-                    if (inGame || waitingForStart) setUpPlayer(target.getName(), true);
+                    if (inGame || waitingForStart)
+                        setUpPlayer(target.getName(), true);
                     count++;
                 }
                 if (count > 0) {
-                    p.sendMessage(ChatColor.AQUA + "Successfully added " + count + " new hunter" + (count == 1 ? "" : "s") + " to the game!");
+                    p.sendMessage(mm.deserialize("<gray>Успешно добавлено <gradient:#ff4444:#ffaaaa>" + count
+                            + "</gradient> новых хантеров в игру!"));
                 } else {
-                    p.sendMessage(ChatColor.RED + "Could not add " + (args.length == 3 ? "this player!" : "these players!"));
+                    p.sendMessage(mm.deserialize("<red>Не удалось добавить этих игроков!"));
                 }
                 return true;
             }
-            p.sendMessage(ChatColor.RED + "Wrong manhunt role. For help, type: /manhunt help");
+            p.sendMessage(mm.deserialize("<red>Неверная роль! Помощь: /manhunt help"));
         } else if (args[0].equals("remove")) {
             if (!p.hasPermission("manhunt.remove") && main.getConfig().getBoolean("usePermissions")) {
-                p.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+                p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
             if (args.length < 2) {
-                p.sendMessage(ChatColor.RED + "Wrong usage of this command. For help, type: /manhunt help");
+                p.sendMessage(mm.deserialize(
+                        "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                 return true;
             }
             int count = 0;
             if (args[1].equals("@a")) {
                 if (args.length != 2) {
-                    p.sendMessage(ChatColor.RED + "Wrong usage of this command. For help, type: /manhunt help");
+                    p.sendMessage(mm.deserialize(
+                            "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                     return true;
                 }
                 for (Player target : Bukkit.getOnlinePlayers()) {
-                    if ((!isInGame(target.getName())) ||
-                       ((inGame || waitingForStart) &&
-                        (isSpeedrunner(target.getName()) && speedrunners.size() == 1 ||
-                         isHunter(target.getName()) && hunters.size() == 1))) continue;
+                    if (!isInGame(target.getName()))
+                        continue;
                     removePlayer(target.getName());
                     count++;
                 }
                 if (count > 0) {
-                    p.sendMessage(ChatColor.AQUA + "Successfully removed " + count + " player" + (count == 1 ? "" : "s") + " from the game!");
+                    p.sendMessage(mm.deserialize("<gray>Успешно удалено <gradient:#ff4444:#ffaaaa>" + count
+                            + "</gradient> игроков из игры!"));
                 } else {
-                    p.sendMessage(ChatColor.RED + "No player was removed!");
+                    p.sendMessage(mm.deserialize("<red>Игроки не были удалены!"));
+                }
+                if ((inGame || waitingForStart) && (hunters.isEmpty() || speedrunners.isEmpty())) {
+                    playersMessage(mm.deserialize(
+                            "<gray>Игра остановлена: одна из ролей осталась без игроков.</gray>"));
+                    reset();
                 }
                 return true;
             }
             for (int i = 1; i < args.length; i++) {
                 Player target = Bukkit.getPlayerExact(args[i]);
-                if (target == null || (!isInGame(target.getName())) ||
-                     ((inGame || waitingForStart) &&
-                      (isSpeedrunner(target.getName()) && speedrunners.size() == 1 ||
-                             isHunter(target.getName()) && hunters.size() == 1))) continue;
+                if (target == null || (!isInGame(target.getName())))
+                    continue;
                 removePlayer(target.getName());
                 count++;
             }
             if (count > 0) {
-                p.sendMessage(ChatColor.AQUA + "Successfully removed " + count + " player" + (count == 1 ? "" : "s") + " from the game!");
+                p.sendMessage(mm.deserialize(
+                        "<gray>Успешно удалено <gradient:#ff4444:#ffaaaa>" + count + "</gradient> игроков из игры!"));
             } else {
-                p.sendMessage(ChatColor.RED + "Could not remove " + (args.length == 2 ? "this player!" : "these players!"));
+                p.sendMessage(mm.deserialize("<red>Не удалось удалить этих игроков!"));
+            }
+            if ((inGame || waitingForStart) && (hunters.isEmpty() || speedrunners.isEmpty())) {
+                playersMessage(mm.deserialize(
+                        "<gray>Игра остановлена: одна из ролей осталась без игроков.</gray>"));
+                reset();
             }
         } else if (args[0].equals("start")) {
             if (!p.hasPermission("manhunt.start") && main.getConfig().getBoolean("usePermissions")) {
-                p.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+                p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
             if (args.length != 1) {
-                p.sendMessage(ChatColor.RED + "Wrong usage of this command. For help, type: /manhunt help");
+                p.sendMessage(mm.deserialize(
+                        "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                 return true;
             }
             if (speedrunners.size() + hunters.size() == 0) {
-                p.sendMessage(ChatColor.RED + "There are no hunters and speedrunners!");
+                p.sendMessage(mm.deserialize("<red>Недостаточно игроков (нет хантеров и спидраннеров)!"));
                 return true;
             }
             if (speedrunners.isEmpty()) {
-                p.sendMessage(ChatColor.RED + "There are no speedrunners!");
+                p.sendMessage(mm.deserialize("<red>Нет спидраннеров!"));
                 return true;
             }
             if (hunters.isEmpty()) {
-                p.sendMessage(ChatColor.RED + "There are no hunters!");
+                p.sendMessage(mm.deserialize("<red>Нет хантеров!"));
                 return true;
             }
             if (inGame || waitingForStart) {
-                p.sendMessage(ChatColor.YELLOW + "The game has already started!");
+                p.sendMessage(mm.deserialize("<red>Игра уже идет!"));
                 return true;
             }
             for (Speedrunner speedrunner : speedrunners) {
                 Player player = Bukkit.getPlayerExact(speedrunner.getName());
                 if (player == null) {
-                    p.sendMessage(ChatColor.RED + "Someone from your game is offline!");
+                    p.sendMessage(mm.deserialize("<red>Кто-то из игроков оффлайн!"));
                     return true;
                 }
             }
             for (Hunter hunter : hunters) {
                 Player player = Bukkit.getPlayerExact(hunter.getName());
                 if (player == null) {
-                    p.sendMessage(ChatColor.RED + "Someone from your game is offline!");
+                    p.sendMessage(mm.deserialize("<red>Кто-то из игроков оффлайн!"));
                     return true;
                 }
             }
             if (main.getConfig().getBoolean("timeSetDayOnStart")) {
-                p.getServer().getWorlds().get(0).setTime(0);
+                setTimeAllWorlds(0);
             }
             if (main.getConfig().getBoolean("weatherClearOnStart")) {
-                p.getServer().getWorlds().get(0).setStorm(false);
+                setWeatherAllWorlds(false);
             }
-            createCompass();
             findPlayer = null;
+            if (main.getConfig().getBoolean("useBossBarRadar", true)) {
+                radarManager.start();
+            } else {
+                setLocatorBarAllWorlds(true);
+            }
+
             if (main.getConfig().getBoolean("teleport")) {
                 for (Speedrunner speedrunnerObject : speedrunners) {
                     Player pl = Bukkit.getPlayerExact(speedrunnerObject.getName());
@@ -307,15 +374,7 @@ public class ManhuntCommand implements CommandExecutor {
                 }
             }
 
-            Team huntersTeam = scoreboard.registerNewTeam("hunters");
-            huntersTeam.setAllowFriendlyFire(main.getConfig().getBoolean("friendlyFire"));
-            huntersTeam.setColor(ChatColor.RED);
-            huntersTeam.setPrefix(ChatColor.DARK_RED + "Hunter ");
-
-            Team speedrunnersTeam = scoreboard.registerNewTeam("speedrunners");
-            speedrunnersTeam.setAllowFriendlyFire(main.getConfig().getBoolean("friendlyFire"));
-            speedrunnersTeam.setColor(ChatColor.GREEN);
-            speedrunnersTeam.setPrefix(ChatColor.DARK_GREEN + "Speedrunner ");
+            teamManager.createTeams();
 
             for (Hunter hunterObject : hunters) {
                 setUpPlayer(hunterObject.getName(), true);
@@ -334,8 +393,9 @@ public class ManhuntCommand implements CommandExecutor {
                         start();
                         starting.cancel();
                     } else {
-                        playersMessage(ChatColor.BLUE + String.valueOf(secondsToStart) + " second" + (secondsToStart == 1 ? "" : "s") + " remaining!");
-                        playersTitle(ChatColor.DARK_PURPLE + String.valueOf(secondsToStart));
+                        playersMessage(mm.deserialize(
+                                "<gray>Осталось <gradient:#ff4444:#ffaaaa>" + secondsToStart + "</gradient> секунд!"));
+                        playersTitle(mm.deserialize("<dark_purple>" + secondsToStart));
                         secondsToStart -= 1;
                     }
                 }
@@ -343,108 +403,47 @@ public class ManhuntCommand implements CommandExecutor {
             game = new BukkitRunnable() {
                 @Override
                 public void run() {
-                    for (Speedrunner speedrunnerObject : speedrunners) {
-                        Player speedrunner = Bukkit.getPlayerExact(speedrunnerObject.getName());
-                        if (speedrunner == null) continue;
-                        if (speedrunner.getWorld().getEnvironment().equals(World.Environment.NORMAL)) {
-                            speedrunnerObject.setLocWorld(speedrunner.getLocation());
-                        } else if (speedrunner.getWorld().getEnvironment().equals(World.Environment.NETHER)) {
-                            speedrunnerObject.setLocNether(speedrunner.getLocation());
-                        } else if (speedrunner.getWorld().getEnvironment().equals(World.Environment.THE_END)) {
-                            speedrunnerObject.setLocTheEnd(speedrunner.getLocation());
-                        }
-                    }
-                    for (Hunter hunterObject : hunters) {
-                        Player hunter = Bukkit.getPlayerExact(hunterObject.getName());
-                        if (hunter == null || compassSlot(hunter) == 50) continue;
-                        if (hunterObject.getCompassMode() == 0) {
-                            double finalDistance = Double.MAX_VALUE;
-                            Player target = null;
-                            for (Speedrunner speedrunnerObject : speedrunners) {
-                                Player speedrunner = Bukkit.getPlayerExact(speedrunnerObject.getName());
-                                if (speedrunner == null) continue;
-                                if (hunter.getWorld().getEnvironment().equals(speedrunner.getWorld().getEnvironment())) {
-                                    double distance = getDistance(hunter.getLocation(), speedrunner.getLocation());
-                                    if (distance < finalDistance) {
-                                        finalDistance = distance;
-                                        target = speedrunner;
-                                    }
-                                }
-                            }
-                            if (target == null) {
-                                ItemMeta meta = compass.getItemMeta();
-                                meta.setDisplayName(ChatColor.RED + "There is no speedrunner is this dimension!");
-                                hunter.getInventory().getItem(compassSlot(hunter)).setItemMeta(meta);
-                            } else {
-                                CompassMeta meta = (CompassMeta) compass.getItemMeta();
-                                meta.setLodestone(target.getLocation());
-                                meta.setDisplayName(ChatColor.GOLD + "Tracking: " + ChatColor.GREEN + "nearest speedrunner");
-                                hunter.getInventory().getItem(compassSlot(hunter)).setItemMeta(meta);
-                            }
-                        } else {
-                            CompassMeta meta = (CompassMeta) compass.getItemMeta();
-                            String targetName = hunterObject.getWhichSpeedrunner();
-                            if (!isSpeedrunner(targetName)) {
-                                targetName = speedrunners.get(0).getName();
-                            }
-                            Player target = Bukkit.getPlayerExact(targetName);
-                            if (target == null) {
-                                meta.setDisplayName(ChatColor.RED + targetName + " is not online!");
-                            } else {
-                                if (!target.getWorld().getEnvironment().equals(hunter.getWorld().getEnvironment())) {
-                                    meta.setDisplayName(ChatColor.RED + targetName + " is not in this dimension!");
-                                } else {
-                                    meta.setDisplayName(ChatColor.GOLD + "Tracking: " + ChatColor.GREEN + targetName);
-                                }
-                                if (main.getConfig().getBoolean("trackPortals") || target.getWorld().getEnvironment().equals(hunter.getWorld().getEnvironment())) {
-                                    if (hunter.getWorld().getEnvironment().equals(World.Environment.NORMAL)) {
-                                        meta.setLodestone(getSpeedrunner(targetName).getLocWorld());
-                                    } else if (hunter.getWorld().getEnvironment().equals(World.Environment.NETHER)) {
-                                        meta.setLodestone(getSpeedrunner(targetName).getLocNether());
-                                    } else if (hunter.getWorld().getEnvironment().equals(World.Environment.THE_END)) {
-                                        meta.setLodestone(getSpeedrunner(targetName).getLocTheEnd());
-                                    }
-                                }
-                            }
-                            hunter.getInventory().getItem(compassSlot(hunter)).setItemMeta(meta);
-                        }
-                    }
+                    waypointManager.updateCompasses(hunters, speedrunners);
                 }
             }.runTaskTimer(main, 0, 1);
+
         } else if (args[0].equals("reset")) {
             if (!p.hasPermission("manhunt.reset") && main.getConfig().getBoolean("usePermissions")) {
-                p.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+                p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
             if (args.length != 1) {
-                p.sendMessage(ChatColor.RED + "Wrong usage of this command. For help, type: /manhunt help");
+                p.sendMessage(mm.deserialize(
+                        "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                 return true;
             }
-            p.sendMessage(ChatColor.AQUA + "Manhunt game has been reset!");
+            p.sendMessage(mm.deserialize("<gray>Игра <gradient:#aa0000:#ff0000>сброшена</gradient>!"));
             reset();
         } else if (args[0].equals("pause")) {
             if (args.length != 1) {
-                p.sendMessage(ChatColor.RED + "Wrong usage of this command. For help, type: /manhunt help");
+                p.sendMessage(mm.deserialize(
+                        "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                 return true;
             }
-            if (!p.hasPermission("manhunt.pause") && main.getConfig().getBoolean("usePermissions") && !isInGame(p.getName())) {
-                p.sendMessage(ChatColor.RED + "You have to be in a game to vote for pause, or need special permission!");
+            if (!p.hasPermission("manhunt.pause") && main.getConfig().getBoolean("usePermissions")
+                    && !isInGame(p.getName())) {
+                p.sendMessage(mm.deserialize("<red>Вы должны быть в игре, чтобы голосовать, или иметь права!"));
                 return true;
             }
             if (!inGame) {
-                p.sendMessage(ChatColor.RED + "There is no running manhunt game!");
+                p.sendMessage(mm.deserialize("<red>Игра не запущена!"));
                 return true;
             }
             if (!main.getConfig().getBoolean("enablePauses")) {
-                p.sendMessage(ChatColor.RED + "Pauses are disabled!");
+                p.sendMessage(mm.deserialize("<red>Паузы отключены!"));
                 return true;
             }
             if (paused) {
-                p.sendMessage(ChatColor.RED + "Game is already paused!");
+                p.sendMessage(mm.deserialize("<red>Игра уже на паузе!"));
                 return true;
             }
             if (pausePlayers.contains(p.getName())) {
-                p.sendMessage(ChatColor.RED + "You have already voted to pause the game!");
+                p.sendMessage(mm.deserialize("<red>Вы уже проголосовали за паузу!"));
                 return true;
             }
             if (p.hasPermission("manhunt.pause")) {
@@ -452,7 +451,9 @@ public class ManhuntCommand implements CommandExecutor {
                 return true;
             }
             pausePlayers.add(p.getName());
-            playersMessage(ChatColor.AQUA + p.getName() + " wants to pause the game! (" + pausePlayers.size() + "/" + (hunters.size() + speedrunners.size()) + ")");
+            playersMessage(mm.deserialize("<gray>Игрок <gradient:#ff4444:#ffaaaa>" + p.getName()
+                    + "</gradient> хочет поставить паузу! (<white>" + pausePlayers.size() + "/"
+                    + (hunters.size() + speedrunners.size()) + "</white>)"));
             if (pausePlayers.size() == hunters.size() + speedrunners.size()) {
                 pauseGame(p);
                 return true;
@@ -462,33 +463,35 @@ public class ManhuntCommand implements CommandExecutor {
                     @Override
                     public void run() {
                         pausePlayers.clear();
-                        playersMessage(ChatColor.AQUA + "Voting for pause has expired");
+                        playersMessage(mm.deserialize("<gray>Голосование за паузу истекло"));
                     }
                 }.runTaskLater(main, 1200);
             }
         } else if (args[0].equals("unpause")) {
             if (args.length != 1) {
-                p.sendMessage(ChatColor.RED + "Wrong usage of this command. For help, type: /manhunt help");
+                p.sendMessage(mm.deserialize(
+                        "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                 return true;
             }
-            if (!p.hasPermission("manhunt.unpause") && main.getConfig().getBoolean("usePermissions") && !isInGame(p.getName())) {
-                p.sendMessage(ChatColor.RED + "You have to be in a game to vote for unpause, or need special permission!");
+            if (!p.hasPermission("manhunt.unpause") && main.getConfig().getBoolean("usePermissions")
+                    && !isInGame(p.getName())) {
+                p.sendMessage(mm.deserialize("<red>Вы должны быть в игре, чтобы голосовать, или иметь права!"));
                 return true;
             }
             if (!inGame) {
-                p.sendMessage(ChatColor.RED + "There is no running manhunt game!");
+                p.sendMessage(mm.deserialize("<red>Игра не запущена!"));
                 return true;
             }
             if (!main.getConfig().getBoolean("enablePauses")) {
-                p.sendMessage(ChatColor.RED + "Pauses are disabled!");
+                p.sendMessage(mm.deserialize("<red>Паузы отключены!"));
                 return true;
             }
             if (!paused) {
-                p.sendMessage(ChatColor.RED + "Game is not paused!");
+                p.sendMessage(mm.deserialize("<red>Игра не на паузе!"));
                 return true;
             }
             if (unpausePlayers.contains(p.getName())) {
-                p.sendMessage(ChatColor.RED + "You have already voted to unpause the game!");
+                p.sendMessage(mm.deserialize("<red>Вы уже проголосовали за продолжение!"));
                 return true;
             }
             if (p.hasPermission("manhunt.unpause")) {
@@ -496,7 +499,9 @@ public class ManhuntCommand implements CommandExecutor {
                 return true;
             }
             unpausePlayers.add(p.getName());
-            playersMessage(ChatColor.AQUA + p.getName() + " wants to unpause the game! (" + unpausePlayers.size() + "/" + (hunters.size() + speedrunners.size()) + ")");
+            playersMessage(mm.deserialize("<gray>Игрок <gradient:#ff4444:#ffaaaa>" + p.getName()
+                    + "</gradient> хочет продолжить игру! (<white>" + unpausePlayers.size() + "/"
+                    + (hunters.size() + speedrunners.size()) + "</white>)"));
             if (unpausePlayers.size() == hunters.size() + speedrunners.size()) {
                 unpauseGame(p);
                 return true;
@@ -506,45 +511,50 @@ public class ManhuntCommand implements CommandExecutor {
                     @Override
                     public void run() {
                         unpausePlayers.clear();
-                        playersMessage(ChatColor.AQUA + "Voting for unpause has expired");
+                        playersMessage(mm.deserialize("<gray>Голосование за продолжение истекло"));
                     }
                 }.runTaskLater(main, 1200);
             }
         } else if (args[0].equals("list")) {
             if (!p.hasPermission("manhunt.list") && main.getConfig().getBoolean("usePermissions")) {
-                p.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+                p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
             if (args.length != 1) {
-                p.sendMessage(ChatColor.RED + "Wrong usage of this command. For help, type: /manhunt help");
+                p.sendMessage(mm.deserialize(
+                        "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                 return true;
             }
             if (speedrunners.size() + hunters.size() == 0) {
-                p.sendMessage(ChatColor.RED + "There is no player in your game!");
+                p.sendMessage(mm.deserialize("<red>Нет игроков в вашей игре!"));
                 return true;
             }
-            p.sendMessage(ChatColor.YELLOW + "-------" + ChatColor.WHITE + " Minecraft Manhunt " + ChatColor.YELLOW + "-------");
+            p.sendMessage(mm.deserialize(
+                    "<gradient:#ff0000:#ffffff><strikethrough>-------</strikethrough></gradient> <red>Minecraft Manhunt</red> <gradient:#ffffff:#ff0000><strikethrough>-------</strikethrough></gradient>"));
             if (!speedrunners.isEmpty()) {
-                p.sendMessage(ChatColor.GREEN + "Speedrunners:");
+                p.sendMessage(mm.deserialize("<gradient:#ff4444:#ffaaaa>Спидраннеры:</gradient>"));
                 for (Speedrunner speedrunnerObject : speedrunners) {
-                    p.sendMessage(ChatColor.DARK_GREEN + speedrunnerObject.getName());
+                    p.sendMessage(mm.deserialize("<dark_green>" + speedrunnerObject.getName()));
                 }
             }
             if (!hunters.isEmpty()) {
-                p.sendMessage(ChatColor.RED + "Hunters:");
+                p.sendMessage(mm.deserialize("<gradient:#aa0000:#ff0000>Хантеры:</gradient>"));
                 for (Hunter hunterObject : hunters) {
-                    p.sendMessage(ChatColor.DARK_RED + hunterObject.getName());
+                    p.sendMessage(mm.deserialize("<dark_red>" + hunterObject.getName()));
                 }
             }
-            p.sendMessage(ChatColor.YELLOW + "----------------------------------");
+            p.sendMessage(mm.deserialize(
+                    "<gradient:#ff0000:#ffffff><strikethrough>----------------------------------</strikethrough></gradient>"));
         } else {
-            p.sendMessage(ChatColor.RED + "Wrong argument. For help, type: /manhunt help");
+            p.sendMessage(mm.deserialize("<red>Неверный аргумент. Для помощи введите: /manhunt help"));
         }
         return true;
     }
 
     public static void removePlayer(String name) {
         Hunter hunterObject = getHunter(name);
+        Speedrunner speedrunnerObject = getSpeedrunner(name);
+
         if (hunterObject != null) {
             Player hunter = Bukkit.getPlayerExact(name);
             if (inGame || waitingForStart) {
@@ -553,26 +563,25 @@ public class ManhuntCommand implements CommandExecutor {
                     target.setOp(hunterObject.isOp());
                 }
                 if (hunter != null) {
-                    hunter.getInventory().clear(compassSlot(hunter));
+                    waypointManager.removeAllCompasses(hunter);
+                    waypointManager.restoreWaypoints(hunter);
                 }
             }
             hunters.removeIf(h -> h.getName().equals(name));
-            Team huntersTeam = scoreboard.getTeam("hunters");
-            if (huntersTeam != null) huntersTeam.removeEntry(name);
-        } else {
-            Speedrunner speedrunnerObject = getSpeedrunner(name);
-            if (speedrunnerObject != null) {
-                if (inGame || waitingForStart) {
-                    if (main.getConfig().getBoolean("takeAwayOps")) {
-                        OfflinePlayer target = Bukkit.getOfflinePlayer(name);
-                        target.setOp(speedrunnerObject.isOp());
-                    }
+        } else if (speedrunnerObject != null) {
+            if (inGame || waitingForStart) {
+                if (main.getConfig().getBoolean("takeAwayOps")) {
+                    OfflinePlayer target = Bukkit.getOfflinePlayer(name);
+                    target.setOp(speedrunnerObject.isOp());
                 }
-                speedrunners.removeIf(s -> s.getName().equals(name));
-                Team speedrunnersTeam = scoreboard.getTeam("speedrunners");
-                if (speedrunnersTeam != null) speedrunnersTeam.removeEntry(name);
+                Player speedrunner = Bukkit.getPlayerExact(name);
+                if (speedrunner != null) {
+                    waypointManager.restoreWaypoints(speedrunner);
+                }
             }
+            speedrunners.removeIf(s -> s.getName().equals(name));
         }
+        teamManager.removePlayer(name);
     }
 
     public static void reset() {
@@ -582,44 +591,41 @@ public class ManhuntCommand implements CommandExecutor {
         while (!speedrunners.isEmpty()) {
             removePlayer(speedrunners.get(0).getName());
         }
-        Team huntersTeam = scoreboard.getTeam("hunters");
-        if (huntersTeam != null) huntersTeam.unregister();
-        Team speedrunnersTeam = scoreboard.getTeam("speedrunners");
-        if (speedrunnersTeam != null) speedrunnersTeam.unregister();
-        if (inGame) {
+        teamManager.reset();
+        if (game != null && !game.isCancelled()) {
             game.cancel();
-            inGame = false;
         }
+        inGame = false;
+        if (radarManager != null) {
+            radarManager.stop();
+        }
+        setLocatorBarAllWorlds(false);
         if (waitingForStart) {
-            starting.cancel();
-            waitingForStart = false;
+            if (starting != null && !starting.isCancelled()) {
+                starting.cancel();
+            }
+        }
+        waitingForStart = false;
+        if (pausing != null && !pausing.isCancelled()) {
+            pausing.cancel();
+        }
+        if (unpausing != null && !unpausing.isCancelled()) {
+            unpausing.cancel();
         }
         pausePlayers.clear();
         unpausePlayers.clear();
         paused = false;
     }
 
-    private double getDistance(Location from, Location to) {
-        double fromX = from.getX();
-        double fromZ = from.getZ();
-        double toX = to.getX();
-        double toZ = to.getZ();
-        return Math.sqrt(Math.pow((fromX - toX), 2) + Math.pow((fromZ - toZ), 2));
-    }
-
-    public static int compassSlot(Player p) {
-        for (int i = 0; i < 41; i++) {
-            if (i == 36) {
-                i = 40;
-            }
-            if (isCompass(p.getInventory().getItem(i))) {
-                return i;
-            }
-        }
-        return 50;
-    }
-
     public static void playersMessage(String s) {
+        playersMessage(Component.text(s));
+    }
+
+    public static void playersTitle(String s) {
+        playersTitle(Component.text(s));
+    }
+
+    public static void playersMessage(Component s) {
         for (Hunter hunterObject : hunters) {
             Player hunter = Bukkit.getPlayerExact(hunterObject.getName());
             if (hunter != null) {
@@ -634,53 +640,40 @@ public class ManhuntCommand implements CommandExecutor {
         }
     }
 
-    public static void playersTitle(String s) {
+    public static void playersTitle(Component s) {
+        Title title = Title.title(s, Component.empty(),
+                Title.Times.times(Duration.ZERO, Duration.ofMillis(1000), Duration.ofMillis(500)));
         for (Hunter hunterObject : hunters) {
             Player hunter = Bukkit.getPlayerExact(hunterObject.getName());
             if (hunter != null) {
-                hunter.sendTitle(s, "", 0, 20, 10);
+                hunter.showTitle(title);
             }
         }
         for (Speedrunner speedrunnerObject : speedrunners) {
             Player speedrunner = Bukkit.getPlayerExact(speedrunnerObject.getName());
             if (speedrunner != null) {
-                speedrunner.sendTitle(s, "", 0, 20, 10);
+                speedrunner.showTitle(title);
             }
         }
     }
 
     public static void start() {
-        playersTitle(ChatColor.DARK_PURPLE + "START!");
-        playersMessage(ChatColor.AQUA + "START!");
+        playersTitle(mm.deserialize("<gradient:#aa0000:#ff0000><bold>СТАРТ!</bold></gradient>"));
+        playersMessage(mm.deserialize("<gradient:#ff4444:#ffaaaa>Игра началась!</gradient>"));
         for (Hunter hunterObject : hunters) {
             Player hunter = Bukkit.getPlayerExact(hunterObject.getName());
-            if (hunter != null) hunter.setFallDistance(0);
+            if (hunter != null)
+                hunter.setFallDistance(0);
         }
-    }
-
-    public static void createCompass() {
-        ItemStack item = new ItemStack(Material.COMPASS, 1);
-        ItemMeta meta = item.getItemMeta();
-        NamespacedKey key = new NamespacedKey(main, "ManhuntCompass");
-        meta.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
-        meta.setDisplayName(ChatColor.GOLD + "Tracking: " + ChatColor.GREEN + "nearest speedrunner");
-        List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.BLUE + "This compass is to track speedrunners!");
-        meta.setLore(lore);
-        item.setItemMeta(meta);
-        compass = item;
-    }
-
-    public static boolean isCompass(ItemStack itemStack) {
-        if (itemStack == null) return false;
-        if (!itemStack.hasItemMeta() || itemStack.getItemMeta() == null) return false;
-        return (itemStack.getItemMeta().getPersistentDataContainer().has
-                (new NamespacedKey(main, "ManhuntCompass"), PersistentDataType.BYTE));
     }
 
     public static void setUpPlayer(String name, boolean isHunter) {
         Player player = Bukkit.getPlayerExact(name);
-        if (player == null) return;
+        if (player == null)
+            return;
+        if (Bukkit.getScoreboardManager() != null) {
+            player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
+        }
         if (main.getConfig().getBoolean("clearInventories")) {
             player.getInventory().clear();
         }
@@ -698,29 +691,32 @@ public class ManhuntCommand implements CommandExecutor {
                 progress.revokeCriteria(s);
         }
         if (isHunter) {
-            Team huntersTeam = scoreboard.getTeam("hunters");
-            if (huntersTeam != null) huntersTeam.addEntry(name);
+            teamManager.addHunter(name);
             Hunter hunterObject = getHunter(name);
-            player.getInventory().addItem(compass);
+            waypointManager.removeAllCompasses(player);
+            player.getInventory().setItem(8, waypointManager.getCompass());
             hunterObject.setWhichSpeedrunner(speedrunners.get(0).getName());
             hunterObject.setCompassMode(1);
             if (main.getConfig().getBoolean("takeAwayOps")) {
                 hunterObject.setOp(player.isOp());
                 player.setOp(false);
             }
+            waypointManager.setupWaypoints(player, "hunter");
         } else {
-            Team speedrunnersTeam = scoreboard.getTeam("speedrunners");
-            if (speedrunnersTeam != null) speedrunnersTeam.addEntry(name);
+            teamManager.addSpeedrunner(name);
             Speedrunner speedrunnerObject = getSpeedrunner(name);
             if (player.getWorld().getEnvironment().equals(World.Environment.NORMAL)) {
                 speedrunnerObject.setLocWorld(player.getLocation());
-            } else speedrunnerObject.setLocWorld(null);
+            } else
+                speedrunnerObject.setLocWorld(null);
             if (player.getWorld().getEnvironment().equals(World.Environment.NETHER)) {
                 speedrunnerObject.setLocNether(player.getLocation());
-            } else speedrunnerObject.setLocNether(null);
+            } else
+                speedrunnerObject.setLocNether(null);
             if (player.getWorld().getEnvironment().equals(World.Environment.THE_END)) {
                 speedrunnerObject.setLocTheEnd(player.getLocation());
-            } else speedrunnerObject.setLocTheEnd(null);
+            } else
+                speedrunnerObject.setLocTheEnd(null);
             speedrunnerObject.setLives(Math.max(main.getConfig().getInt("speedrunnersLives"), 1));
             if (main.getConfig().getBoolean("spectatorAfterDeath")) {
                 speedrunnerObject.setGameMode(player.getGameMode());
@@ -729,37 +725,65 @@ public class ManhuntCommand implements CommandExecutor {
                 speedrunnerObject.setOp(player.isOp());
                 player.setOp(false);
             }
+            waypointManager.setupWaypoints(player, "speedrunner");
         }
     }
 
     public static void unpauseGame(CommandSender p) {
         paused = false;
-        if (unpausing != null && !unpausing.isCancelled()) unpausing.cancel();
+        if (unpausing != null && !unpausing.isCancelled())
+            unpausing.cancel();
         pausePlayers.clear();
-        playersMessage(ChatColor.AQUA + "Game unpaused!");
-        p.getServer().getWorlds().get(0).setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
+        playersMessage(mm.deserialize("<gray>Игра <gradient:#ff4444:#ffaaaa>возобновлена</gradient>!"));
+        setDaylightCycleAllWorlds(true);
         for (Hunter hunterObject : hunters) {
             Player hunter = Bukkit.getPlayerExact(hunterObject.getName());
             if (hunter != null) {
                 hunter.setFallDistance(0);
-                hunter.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 100, 255));
+                hunter.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 255));
             }
         }
         for (Speedrunner speedrunnerObject : speedrunners) {
             Player speedrunner = Bukkit.getPlayerExact(speedrunnerObject.getName());
             if (speedrunner != null) {
                 speedrunner.setFallDistance(0);
-                speedrunner.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 100, 255));
+                speedrunner.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 255));
             }
         }
     }
 
     public static void pauseGame(CommandSender p) {
         paused = true;
-        if (pausing != null && !pausing.isCancelled()) pausing.cancel();
+        if (pausing != null && !pausing.isCancelled())
+            pausing.cancel();
         unpausePlayers.clear();
-        playersMessage(ChatColor.AQUA + "Game paused!");
-        p.getServer().getWorlds().get(0).setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+        playersMessage(mm.deserialize("<gray>Игра <gradient:#aa0000:#ff0000>приостановлена</gradient>!"));
+        setDaylightCycleAllWorlds(false);
+    }
+
+    private static void setDaylightCycleAllWorlds(boolean enabled) {
+        for (World world : Bukkit.getWorlds()) {
+            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, enabled);
+        }
+    }
+
+    private static void setTimeAllWorlds(long time) {
+        for (World world : Bukkit.getWorlds()) {
+            world.setTime(time);
+        }
+    }
+
+    private static void setWeatherAllWorlds(boolean storm) {
+        for (World world : Bukkit.getWorlds()) {
+            world.setStorm(storm);
+        }
+    }
+
+    private static void setLocatorBarAllWorlds(boolean enabled) {
+        for (World world : Bukkit.getWorlds()) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                    "execute in " + world.getName() + " run gamerule locator_bar " + enabled);
+        }
     }
 
     public static boolean isHunter(String name) {

@@ -2,9 +2,9 @@ package me.matistan05.minecraftmanhunt.listeners;
 
 import me.matistan05.minecraftmanhunt.Main;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -21,32 +21,35 @@ public class DeathListener implements Listener {
 
     @EventHandler
     public void DeathEvent(PlayerDeathEvent e) {
-        if (!inGame && !waitingForStart) return;
+        if (!inGame && !waitingForStart)
+            return;
         Player p = e.getEntity();
         if (isHunter(p.getName())) {
-            for (int i = 0; i < e.getDrops().size(); i++) {
-                if (isCompass(e.getDrops().get(i))) {
-                    e.getDrops().remove(i);
-                    break;
-                }
-            }
+            e.getDrops().removeIf(waypointManager::isCompass);
         } else if (isSpeedrunner(p.getName())) {
+            MiniMessage mm = MiniMessage.miniMessage();
             getSpeedrunner(p.getName()).setLives(getSpeedrunner(p.getName()).getLives() - 1);
-            if (getSpeedrunner(p.getName()).getLives() >= 1) {
-                playersMessage(ChatColor.DARK_RED + "Speedrunner " + p.getName() + " died and has " + getSpeedrunner(p.getName()).getLives() + " live" + (getSpeedrunner(p.getName()).getLives() == 1 ? "" : "s") + " left!");
+            int lives = getSpeedrunner(p.getName()).getLives();
+            if (lives >= 1) {
+                playersMessage(mm.deserialize("<gray>Спидраннер <gradient:#ff4444:#ffaaaa>" + p.getName()
+                        + "</gradient> погиб! Осталось жизней: <white>" + lives + "</white>"));
             } else {
                 if (speedrunners.size() == 1) {
-                    playersMessage(ChatColor.DARK_RED + "Last speedrunner " + p.getName() + " died!");
-                    playersMessage(ChatColor.DARK_RED + "Hunters won!");
+                    playersMessage(mm.deserialize("<gradient:#aa0000:#ff0000><bold>Последний спидраннер " + p.getName()
+                            + " погиб!</bold></gradient>"));
+                    playersMessage(
+                            mm.deserialize("<gradient:#ff4444:#ffffff><bold>Охотники победили!</bold></gradient>"));
+                    playersTitle(mm.deserialize("<gradient:#aa0000:#ff0000><bold>ПОБЕДА ОХОТНИКОВ!</bold></gradient>"));
                     reset();
                 } else {
                     if (main.getConfig().getBoolean("spectatorAfterDeath")) {
                         p.setGameMode(GameMode.SPECTATOR);
-//                        spectators.add(p.getName());
                     }
                     removePlayer(p.getName());
-                    playersMessage(ChatColor.DARK_RED + "Speedrunner " + p.getName() + " died!");
-                    playersMessage(ChatColor.DARK_RED + "There " + (speedrunners.size() == 1 ? "is" : "are") + " " + speedrunners.size() + " speedrunner" + (speedrunners.size() == 1 ? "" : "s") + " left alive!");
+                    playersMessage(mm.deserialize(
+                            "<gray>Спидраннер <gradient:#ff4444:#ffaaaa>" + p.getName() + "</gradient> погиб!"));
+                    playersMessage(
+                            mm.deserialize("<gray>Осталось спидраннеров: <white>" + speedrunners.size() + "</white>"));
                 }
             }
         }

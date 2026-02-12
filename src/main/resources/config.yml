@@ -1,36 +1,56 @@
-# *********************************************************
-# Thank you for using this plugin! <3
-# Author: Matistan
-# If you enjoy this plugin, please rate it on spigotmc.org:
-# https://www.spigotmc.org/resources/manhunt.109010/
-# *********************************************************
+# modded hetashi
+# Конфигурация Minecraft Manhunt
 
-# Set to true to set the time to day automatically when the game starts.
+# Если true, при старте игры будет установлено дневное время
 timeSetDayOnStart: true
-# Set to true to set the weather to clear automatically when the game starts.
+
+# Если true, при старте игры погода будет ясной
 weatherClearOnStart: true
-# Set to true to take away OPs for the duration of the game.
-takeAwayOps: true
-# Set to true to clear players inventories when the game starts.
-clearInventories: true
-# Set the time for speedrunners to run away.
-headStartDuration: 10
-# Set the amount of lives for speedrunners.
+
+# Длительность форы для спидраннеров в секундах
+headStartDuration: 0
+
+# Количество жизней у спидраннеров
 speedrunnersLives: 1
-# Set to true to enable tracking speedrunners portals when they are in a different dimension.
-trackPortals: true
-# Set to true to enable tracking the nearest speedrunner on compasses.
-trackNearestMode: true
-# Set to true to teleport everyone in the same spot when the game starts.
-teleport: true
-# Set to true to open a menu to choose which speedrunner to track.
-compassMenu: false
-# Set to true to enable the pause feature (/manhunt pause).
-enablePauses: true
-# Set to true to enable permission checks.
-## Note: This feature needs a permissions plugin (such as LuckPerms) to work.
-usePermissions: true
-# Set to true to give spectator mode to dead speedrunners.
+
+# Если true, погибшие игроки перейдут в режим наблюдателя
 spectatorAfterDeath: true
-# Set to true to enable friendly fire.
-friendlyFire: false
+
+# Если true, игроки будут телепортированы друг к другу при старте игры
+teleport: true
+
+# Если true, охотники смогут отслеживать спидраннеров через порталы
+trackPortals: true
+
+# Если true, включен огонь по своим (friendly fire)
+friendlyFire: true
+
+# Если true, охотники могут использовать меню для выбора цели отслеживания
+compassMenu: false
+
+# Если true, охотники могут выбрать отслеживание ближайшего спидраннера
+trackNearestMode: true
+
+# Если true, инвентари будут очищены при старте игры
+clearInventories: true
+
+# Если true, игроки потеряют статус оператора при старте и получат его обратно после завершения
+takeAwayOps: true
+
+# Если true, только игроки с правами 'manhunt.help', 'manhunt.rules' и т.д. смогут использовать команды
+usePermissions: false
+
+# Если true, используется новый BossBar радар. Если false - стандартная подсветка (Locator Bar v1.21)
+useBossBarRadar: false
+
+# Если true, команды /manhunt pause и /manhunt unpause доступны
+enablePauses: true
+
+# --- Казуальный режим ---
+# Включает способности охотников через компас (Shift + ПКМ)
+casual: true
+
+# Способность Shadows Warp
+warpShadowsCooldown: 300
+warpShadowsMaxDistance: 200
+warpShadowsBufferZone: 40

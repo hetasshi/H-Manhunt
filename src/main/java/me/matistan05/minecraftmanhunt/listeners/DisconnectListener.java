@@ -2,7 +2,7 @@ package me.matistan05.minecraftmanhunt.listeners;
 
 import me.matistan05.minecraftmanhunt.Main;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -24,13 +24,15 @@ public class DisconnectListener implements Listener {
                 if (pausePlayers.isEmpty()) {
                     pausing.cancel();
                 }
-                playersMessage(ChatColor.AQUA + p.getName() + " left, so his voting is expired");
+                playersMessage(MiniMessage.miniMessage().deserialize("<gray>Игрок <gradient:#ff4444:#ffaaaa>"
+                        + p.getName() + "</gradient> вышел, его голос аннулирован."));
             } else if (unpausePlayers.contains(p.getName()) && paused) {
                 unpausePlayers.remove(p.getName());
                 if (unpausePlayers.isEmpty()) {
                     unpausing.cancel();
                 }
-                playersMessage(ChatColor.AQUA + p.getName() + " left, so his voting is expired");
+                playersMessage(MiniMessage.miniMessage().deserialize("<gray>Игрок <gradient:#ff4444:#ffaaaa>"
+                        + p.getName() + "</gradient> вышел, его голос аннулирован."));
             }
         }
     }

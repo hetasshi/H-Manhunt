@@ -16,7 +16,9 @@ public class RespawnListener implements Listener {
     @EventHandler
     public void RespawnEvent(PlayerRespawnEvent e) {
         if ((inGame || waitingForStart) && isHunter(e.getPlayer().getName())) {
-            e.getPlayer().getInventory().addItem(compass);
+            if (waypointManager.getCompassSlot(e.getPlayer()) == -1) {
+                e.getPlayer().getInventory().setItem(8, waypointManager.getCompass());
+            }
         }
     }
 }
