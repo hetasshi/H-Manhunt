@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src=".github/assets/hmanhunt.png" alt="H-Manhunt Banner" width="550">
+<img src=".github/assets/hmanhunt.png" alt="H-Manhunt Banner" width="700">
 
 # H-Manhunt 🏹
 
