@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src=".github/assets/hmanhunt.png" alt="H-Manhunt Banner" width="550">
+
 # H-Manhunt 🏹
 
 > Модифицированный и прокачанный плагин режима Manhunt для самых современных версий Minecraft.
