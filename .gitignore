@@ -36,6 +36,7 @@ Thumbs.db
 # Документация (пока не публикуем)
 ABILITIES_DOC.md
 SOURCE_GUIDE.md
+WARP_VISUAL_PROMPT.md
 
 # Minecraft Server (если тестируешь локально)
 server/
