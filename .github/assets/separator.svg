@@ -1,0 +1,18 @@
+<svg width="800" height="40" viewBox="0 0 800 40" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="leftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0"/>
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="rightGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+  <!-- Left decorative line -->
+  <path d="M 50,20 Q 120,5 200,20 Q 280,35 350,20" stroke="url(#leftGrad)" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Center diamond -->
+  <polygon points="400,10 410,20 400,30 390,20" fill="#8b5cf6"/>
+  <!-- Right decorative line -->
+  <path d="M 450,20 Q 520,5 600,20 Q 680,35 750,20" stroke="url(#rightGrad)" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>
