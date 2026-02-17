@@ -1,14 +1,16 @@
 package me.matistan05.minecraftmanhunt.managers;
 
 import me.matistan05.minecraftmanhunt.Main;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 public class TeamManager {
     private final Main main;
     private final Scoreboard scoreboard;
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     public TeamManager(Main main) {
         this.main = main;
@@ -21,10 +23,9 @@ public class TeamManager {
         }
         Team huntersTeam = scoreboard.registerNewTeam("hunters");
         huntersTeam.setAllowFriendlyFire(main.getConfig().getBoolean("friendlyFire"));
-        huntersTeam.setColor(ChatColor.RED);
-        huntersTeam.setPrefix(ChatColor.GRAY + "[" + ChatColor.RED + ChatColor.BOLD + "Hunter" + ChatColor.GRAY
-                + "] " + ChatColor.WHITE);
-        huntersTeam.setSuffix(" " + ChatColor.RED + "⚔");
+        huntersTeam.color(NamedTextColor.RED);
+        huntersTeam.prefix(LEGACY.deserialize("§7[§c§lHunter§7] §f"));
+        huntersTeam.suffix(LEGACY.deserialize(" §c⚔"));
         huntersTeam.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
 
         if (scoreboard.getTeam("speedrunners") != null) {
@@ -32,10 +33,9 @@ public class TeamManager {
         }
         Team speedrunnersTeam = scoreboard.registerNewTeam("speedrunners");
         speedrunnersTeam.setAllowFriendlyFire(main.getConfig().getBoolean("friendlyFire"));
-        speedrunnersTeam.setColor(ChatColor.GREEN);
-        speedrunnersTeam.setPrefix(ChatColor.GRAY + "[" + ChatColor.GREEN + ChatColor.BOLD + "Runner"
-                + ChatColor.GRAY + "] " + ChatColor.WHITE);
-        speedrunnersTeam.setSuffix(" " + ChatColor.GREEN + "🗲");
+        speedrunnersTeam.color(NamedTextColor.GREEN);
+        speedrunnersTeam.prefix(LEGACY.deserialize("§7[§a§lRunner§7] §f"));
+        speedrunnersTeam.suffix(LEGACY.deserialize(" §a🗲"));
         speedrunnersTeam.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
     }
 

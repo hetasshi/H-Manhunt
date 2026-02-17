@@ -5,6 +5,7 @@ import me.matistan05.minecraftmanhunt.abilities.gui.AbilitiesMenu;
 import me.matistan05.minecraftmanhunt.abilities.listeners.AbilitiesController;
 import me.matistan05.minecraftmanhunt.commands.ManhuntCommand;
 import me.matistan05.minecraftmanhunt.commands.ManhuntCompleter;
+import me.matistan05.minecraftmanhunt.managers.UpdateManager;
 import me.matistan05.minecraftmanhunt.listeners.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -13,9 +14,11 @@ import static me.matistan05.minecraftmanhunt.commands.ManhuntCommand.waitingForS
 import static me.matistan05.minecraftmanhunt.commands.ManhuntCommand.reset;
 
 public final class Main extends JavaPlugin {
+    private UpdateManager updateManager;
 
     public void onEnable() {
         saveDefaultConfig();
+        updateManager = new UpdateManager(this);
 
         AbilitiesManager abilitiesManager = new AbilitiesManager(this);
         AbilitiesMenu abilitiesMenu = new AbilitiesMenu(this);
@@ -40,6 +43,7 @@ public final class Main extends JavaPlugin {
                         "If you enjoy this plugin, please rate it on spigotmc.org:\n" +
                         "https://www.spigotmc.org/resources/manhunt.109010/\n" +
                         "*********************************************************\n");
+        updateManager.checkOnStartup();
     }
 
     @Override
@@ -47,5 +51,9 @@ public final class Main extends JavaPlugin {
         if (inGame || waitingForStart) {
             reset();
         }
+    }
+
+    public UpdateManager getUpdateManager() {
+        return updateManager;
     }
 }

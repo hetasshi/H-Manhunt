@@ -33,12 +33,13 @@ Thumbs.db
 # Logs
 *.log
 
-# Документация (пока не публикуем)
+# Документация
 ABILITIES_DOC.md
 SOURCE_GUIDE.md
 WARP_VISUAL_PROMPT.md
+AGENTS.md
 
-# Minecraft Server (если тестируешь локально)
+# Minecraft Server
 server/
 test-server/
 run/
@@ -47,7 +48,7 @@ run/
 *.jar
 !*-SNAPSHOT.jar
 
-# Minecraft plugin configs (если не хочешь заливать тестовые конфиги)
+# Minecraft plugin configs
 # plugins/MinecraftManhunt/config.yml
 
 # Временные файлы

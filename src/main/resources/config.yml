@@ -54,3 +54,17 @@ casual: true
 warpShadowsCooldown: 300
 warpShadowsMaxDistance: 200
 warpShadowsBufferZone: 40
+
+# --- Обновления плагина через GitHub Releases ---
+# Главный переключатель системы обновлений
+update:
+  enabled: true
+  # Проверка обновления при каждом запуске плагина
+  checkOnStartup: true
+  # GitHub owner/repo
+  owner: "hetasshi"
+  repository: "H-Manhunt"
+  # Пока можно оставить false (только stable). Если true - учитываются prerelease.
+  allowPrerelease: false
+  # Если пусто, берется первый .jar asset из релиза
+  assetName: ""

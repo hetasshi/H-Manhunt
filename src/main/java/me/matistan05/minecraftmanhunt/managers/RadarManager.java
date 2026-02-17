@@ -51,17 +51,14 @@ public class RadarManager {
 
             BossBar bar = getOrCreateBar(p);
             List<Player> teammates = new ArrayList<>();
-            String roleColor = "white";
 
             if (ManhuntCommand.isHunter(p.getName())) {
-                roleColor = "green";
                 for (var h : ManhuntCommand.hunters) {
                     Player hp = Bukkit.getPlayerExact(h.getName());
                     if (hp != null)
                         teammates.add(hp);
                 }
             } else if (ManhuntCommand.isSpeedrunner(p.getName())) {
-                roleColor = "red";
                 if (ManhuntCommand.speedrunners.size() > 1) {
                     for (var s : ManhuntCommand.speedrunners) {
                         Player sp = Bukkit.getPlayerExact(s.getName());

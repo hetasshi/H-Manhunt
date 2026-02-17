@@ -4,7 +4,6 @@ import me.matistan05.minecraftmanhunt.Main;
 import org.bukkit.Bukkit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;

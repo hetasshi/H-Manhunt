@@ -21,3 +21,6 @@ permissions:
       manhunt.list: true
       manhunt.rules: true
       manhunt.help: true
+      manhunt.update: true
+  manhunt.update:
+    description: Allows the player to check and download plugin updates

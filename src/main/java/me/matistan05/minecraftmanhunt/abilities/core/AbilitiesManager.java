@@ -6,6 +6,7 @@ import me.matistan05.minecraftmanhunt.classes.Speedrunner;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -14,6 +15,11 @@ import org.bukkit.util.Vector;
 import static me.matistan05.minecraftmanhunt.commands.ManhuntCommand.*;
 
 public class AbilitiesManager {
+    private static final int[] ANGLE_OFFSETS = {0, 5, -5, 10, -10, 15, -15, 20, -20, 30, -30, 40, -40, 55, -55, 70,
+            -70, 80, -80};
+    private static final int[] RADIUS_OFFSETS = {0, -4, 4, -8, 8, -12, 12};
+    private static final int[] VERTICAL_SEARCH_RANGES = {4, 8, 14, 22};
+
     private final Main main;
 
     public AbilitiesManager(Main main) {
@@ -50,8 +56,11 @@ public class AbilitiesManager {
             return;
         }
 
-        Location newLoc = calculateWarpLocation(p.getLocation(), targetLoc, maxDist);
-        newLoc = findSafeLocation(newLoc);
+        Location newLoc = findBestWarpLocation(p.getLocation(), targetLoc, maxDist);
+        if (newLoc == null) {
+            p.sendMessage(mm.deserialize("<red>Безопасная точка для варпа не найдена!"));
+            return;
+        }
 
         p.teleport(newLoc);
         hunter.setLastWarpShadows(now);
@@ -115,21 +124,141 @@ public class AbilitiesManager {
         return null;
     }
 
-    private Location calculateWarpLocation(Location hLoc, Location tLoc, int maxDist) {
-        Vector dir = tLoc.toVector().subtract(hLoc.toVector()).normalize();
-        return tLoc.clone().subtract(dir.multiply(maxDist));
+    private Location findBestWarpLocation(Location hunterLoc, Location targetLoc, int maxDist) {
+        if (hunterLoc.getWorld() == null || targetLoc.getWorld() == null
+                || !hunterLoc.getWorld().equals(targetLoc.getWorld())) {
+            return null;
+        }
+
+        Vector hunterToTarget = targetLoc.toVector().subtract(hunterLoc.toVector()).setY(0);
+        if (hunterToTarget.lengthSquared() == 0) {
+            return null;
+        }
+
+        Vector preferredDir = hunterToTarget.clone().normalize().multiply(-1);
+        Vector hunterSide = hunterLoc.toVector().subtract(targetLoc.toVector()).setY(0);
+        if (hunterSide.lengthSquared() > 0) {
+            hunterSide.normalize();
+        } else {
+            hunterSide = preferredDir.clone();
+        }
+
+        Location best = null;
+        double bestScore = Double.MAX_VALUE;
+
+        for (int angleOffset : ANGLE_OFFSETS) {
+            double radians = Math.toRadians(angleOffset);
+            for (int radiusOffset : RADIUS_OFFSETS) {
+                int radius = Math.max(4, maxDist + radiusOffset);
+                Vector dir = preferredDir.clone().rotateAroundY(radians);
+                Location candidateXZ = targetLoc.clone().add(dir.multiply(radius));
+
+                if (isAheadOfTarget(candidateXZ, targetLoc, hunterSide)) {
+                    continue;
+                }
+
+                Location safeCandidate = findSafeLocationNearY(candidateXZ);
+                if (safeCandidate == null || isAheadOfTarget(safeCandidate, targetLoc, hunterSide)) {
+                    continue;
+                }
+
+                double yShift = Math.abs(safeCandidate.getY() - candidateXZ.getY());
+                double waterPenalty = isWater(safeCandidate.getBlock().getType()) ? 5.0 : 0.0;
+                double score = Math.abs(angleOffset) * 1000.0 + Math.abs(radiusOffset) * 20.0 + yShift + waterPenalty;
+
+                if (score < bestScore) {
+                    bestScore = score;
+                    best = safeCandidate;
+                }
+            }
+        }
+
+        return best;
     }
 
-    private Location findSafeLocation(Location loc) {
-        Location safe = loc.clone();
-        while ((!safe.getBlock().getType().isAir() || !safe.clone().add(0, 1, 0).getBlock().getType().isAir()
-                || safe.getBlock().isLiquid())
-                && safe.getY() < 319) {
-            safe.add(0, 1, 0);
+    private Location findSafeLocationNearY(Location base) {
+        World world = base.getWorld();
+        if (world == null) {
+            return null;
         }
-        while (safe.clone().add(0, -1, 0).getBlock().getType().isAir() && safe.getY() > -64) {
-            safe.add(0, -1, 0);
+
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight() - 1;
+        int baseY = base.getBlockY();
+
+        for (int range : VERTICAL_SEARCH_RANGES) {
+            for (int offset = 0; offset <= range; offset++) {
+                Location positive = tryLocationAtY(base, baseY + offset, minY, maxY);
+                if (positive != null) {
+                    return positive;
+                }
+
+                if (offset == 0) {
+                    continue;
+                }
+
+                Location negative = tryLocationAtY(base, baseY - offset, minY, maxY);
+                if (negative != null) {
+                    return negative;
+                }
+            }
         }
-        return safe;
+
+        return null;
+    }
+
+    private Location tryLocationAtY(Location base, int y, int minY, int maxY) {
+        if (y < minY || y > maxY) {
+            return null;
+        }
+
+        Location candidate = base.clone();
+        candidate.setY(y);
+
+        if (isSafeWarpSpot(candidate)) {
+            return candidate;
+        }
+
+        return null;
+    }
+
+    private boolean isSafeWarpSpot(Location loc) {
+        Material feet = loc.getBlock().getType();
+        Material head = loc.clone().add(0, 1, 0).getBlock().getType();
+        Material below = loc.clone().add(0, -1, 0).getBlock().getType();
+
+        if (isLava(feet) || isLava(head) || isLava(below)) {
+            return false;
+        }
+
+        if (!isPassableForWarp(feet) || !isPassableForWarp(head)) {
+            return false;
+        }
+
+        if (isWater(feet)) {
+            return true;
+        }
+
+        return !below.isAir() && !isWater(below);
+    }
+
+    private boolean isPassableForWarp(Material material) {
+        return material.isAir() || isWater(material);
+    }
+
+    private boolean isWater(Material material) {
+        return material == Material.WATER;
+    }
+
+    private boolean isLava(Material material) {
+        return material == Material.LAVA;
+    }
+
+    private boolean isAheadOfTarget(Location candidate, Location target, Vector hunterSide) {
+        Vector candidateSide = candidate.toVector().subtract(target.toVector()).setY(0);
+        if (candidateSide.lengthSquared() == 0) {
+            return false;
+        }
+        return hunterSide.dot(candidateSide) <= 0;
     }
 }

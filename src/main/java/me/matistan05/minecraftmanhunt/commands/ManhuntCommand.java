@@ -2,6 +2,7 @@ package me.matistan05.minecraftmanhunt.commands;
 
 import me.matistan05.minecraftmanhunt.managers.RadarManager;
 import me.matistan05.minecraftmanhunt.managers.TeamManager;
+import me.matistan05.minecraftmanhunt.managers.UpdateManager;
 import me.matistan05.minecraftmanhunt.managers.WaypointManager;
 
 import me.matistan05.minecraftmanhunt.Main;
@@ -27,7 +28,6 @@ import java.time.Duration;
 
 import java.util.*;
 
-@SuppressWarnings("deprecation")
 public class ManhuntCommand implements CommandExecutor {
     private static Main main;
     public static List<Hunter> hunters = new ArrayList<>();
@@ -97,7 +97,32 @@ public class ManhuntCommand implements CommandExecutor {
             p.sendMessage(
                     mm.deserialize("<dark_gray>» <gradient:#ff8888:#ffcccc>/manhunt rules</gradient> <gray>- правила"));
             p.sendMessage(mm.deserialize(
+                    "<dark_gray>» <gradient:#88ff88:#ccffcc>/manhunt update check</gradient> <gray>- проверить обновления"));
+            p.sendMessage(mm.deserialize(
+                    "<dark_gray>» <gradient:#88ff88:#ccffcc>/manhunt update download</gradient> <gray>- скачать обновление"));
+            p.sendMessage(mm.deserialize(
                     "<gradient:#ff0000:#ffffff><strikethrough>----------------------------------</strikethrough></gradient>"));
+        } else if (args[0].equals("update")) {
+            if (!p.hasPermission("manhunt.update") && main.getConfig().getBoolean("usePermissions")) {
+                p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
+                return true;
+            }
+            if (args.length != 2) {
+                p.sendMessage(mm.deserialize("<gray>Использование: <white>/manhunt update check</white> или "
+                        + "<white>/manhunt update download</white>"));
+                return true;
+            }
+            UpdateManager updateManager = main.getUpdateManager();
+            if (args[1].equals("check")) {
+                updateManager.checkByCommand(p);
+                return true;
+            }
+            if (args[1].equals("download")) {
+                updateManager.downloadByCommand(p);
+                return true;
+            }
+            p.sendMessage(mm.deserialize("<red>Неверный аргумент. Используйте: /manhunt update check|download"));
+            return true;
         } else if (args[0].equals("rules")) {
             if (!p.hasPermission("manhunt.rules") && main.getConfig().getBoolean("usePermissions")) {
                 p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
@@ -110,6 +135,10 @@ public class ManhuntCommand implements CommandExecutor {
             }
             if (!main.getConfig().contains(args[1])) {
                 p.sendMessage(mm.deserialize("<red>Такого правила нет. Проверьте файл config.yml."));
+                return true;
+            }
+            if (main.getConfig().isConfigurationSection(args[1])) {
+                p.sendMessage(mm.deserialize("<red>Этот параметр является секцией. Используйте прямое редактирование config.yml."));
                 return true;
             }
             if (args.length == 2) {
