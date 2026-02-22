@@ -103,7 +103,7 @@ public class ManhuntCommand implements CommandExecutor {
             p.sendMessage(mm.deserialize(
                     "<gradient:#ff0000:#ffffff><strikethrough>----------------------------------</strikethrough></gradient>"));
         } else if (args[0].equals("update")) {
-            if (!p.hasPermission("manhunt.update") && main.getConfig().getBoolean("usePermissions")) {
+            if (!canUseUpdateCommand(p)) {
                 p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
@@ -578,6 +578,10 @@ public class ManhuntCommand implements CommandExecutor {
             p.sendMessage(mm.deserialize("<red>Неверный аргумент. Для помощи введите: /manhunt help"));
         }
         return true;
+    }
+
+    private boolean canUseUpdateCommand(CommandSender sender) {
+        return sender.isOp() || sender.hasPermission("manhunt.update");
     }
 
     public static void removePlayer(String name) {
