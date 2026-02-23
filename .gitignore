@@ -34,10 +34,8 @@ Thumbs.db
 *.log
 
 # Документация
-ABILITIES_DOC.md
-SOURCE_GUIDE.md
-WARP_VISUAL_PROMPT.md
-AGENTS.md
+*.md
+!README.md
 
 # Minecraft Server
 server/
