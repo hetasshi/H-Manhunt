@@ -141,30 +141,29 @@ public class ManhuntCommand implements CommandExecutor {
                 p.sendMessage(mm.deserialize("<red>Этот параметр является секцией. Используйте прямое редактирование config.yml."));
                 return true;
             }
+            RulesConfigSupport.RuleType ruleType = RulesConfigSupport.resolveRuleType(main, args[1]);
+            if (ruleType == RulesConfigSupport.RuleType.UNSUPPORTED) {
+                p.sendMessage(mm.deserialize(
+                        "<red>Этот параметр нельзя изменить через команду. Используйте прямое редактирование config.yml."));
+                return true;
+            }
             if (args.length == 2) {
                 p.sendMessage(mm.deserialize("<gray>Значение правила <gradient:#ff4444:#ffaaaa>" + args[1]
                         + "</gradient> это: <white>" + main.getConfig().get(args[1])));
                 return true;
             }
-            if (args[1].equals("headStartDuration") || args[1].equals("speedrunnersLives")
-                    || args[1].equals("warpShadowsCooldown") || args[1].equals("warpShadowsMaxDistance")
-                    || args[1].equals("warpShadowsBufferZone")) {
-                try {
-                    main.getConfig().set(args[1], Integer.parseInt(args[2]));
-                } catch (NumberFormatException e) {
-                    p.sendMessage(mm.deserialize("<red>Значение должно быть числом!"));
-                    return true;
-                }
-            } else {
-                if (!args[2].equals("true") && !args[2].equals("false")) {
-                    p.sendMessage(mm.deserialize("<red>Значение должно быть true или false!"));
-                    return true;
-                }
-                main.getConfig().set(args[1], Boolean.parseBoolean(args[2]));
+            Object parsedValue;
+            try {
+                parsedValue = RulesConfigSupport.parseValue(main, args[1], args[2]);
+            } catch (IllegalArgumentException e) {
+                p.sendMessage(mm.deserialize("<red>Значение должно быть "
+                        + RulesConfigSupport.expectedValueHint(ruleType) + "!"));
+                return true;
             }
+            main.getConfig().set(args[1], parsedValue);
             main.saveConfig();
             p.sendMessage(mm.deserialize("<gray>Значение правила <gradient:#ff4444:#ffaaaa>" + args[1]
-                    + "</gradient> было изменено на: <white>" + args[2]));
+                    + "</gradient> было изменено на: <white>" + parsedValue));
         } else if (args[0].equals("add")) {
             if (!p.hasPermission("manhunt.add") && main.getConfig().getBoolean("usePermissions")) {
                 p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
@@ -796,7 +795,7 @@ public class ManhuntCommand implements CommandExecutor {
 
     private static void setDaylightCycleAllWorlds(boolean enabled) {
         for (World world : Bukkit.getWorlds()) {
-            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, enabled);
+            world.setGameRule(GameRules.ADVANCE_TIME, enabled);
         }
     }
 

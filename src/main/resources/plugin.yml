@@ -1,9 +1,9 @@
-name: MinecraftManhunt
+name: h-manhunt
 version: '${project.version}'
 main: me.matistan05.minecraftmanhunt.Main
-api-version: 1.16
-authors: [Matistan05]
-description: Minecraft manhunt plugin made by Matistan
+api-version: 1.21
+authors: [hetashi, Matistan05]
+description: Enhanced fork of MinecraftManhunt by hetashi
 commands:
   manhunt:
     description: This command sets up the whole manhunt game

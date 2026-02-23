@@ -81,7 +81,7 @@ public class UpdateManager {
                     return;
                 }
 
-                String currentVersion = normalizeVersion(main.getDescription().getVersion());
+                String currentVersion = normalizeVersion(main.getPluginMeta().getVersion());
                 String latestVersion = normalizeVersion(release.tagName());
 
                 if (compareVersions(latestVersion, currentVersion) <= 0) {

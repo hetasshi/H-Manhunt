@@ -67,18 +67,11 @@ public class ManhuntCompleter implements TabCompleter {
         } else if (args.length > 1 && args[0].equals("rules")) {
             if (args.length == 2) {
                 list = main.getConfig().getKeys(false).stream()
-                        .filter(s -> !main.getConfig().isConfigurationSection(s))
+                        .filter(s -> RulesConfigSupport.isEditableRule(main, s))
                         .filter(s -> startsWith(s, args[1]))
                         .collect(Collectors.toList());
-            } else if (args.length == 3 && main.getConfig().contains(args[1])
-                    && !main.getConfig().isConfigurationSection(args[1])
-                    && !args[1].equals("speedrunnersLives") && !args[1].equals("headStartDuration")) {
-                if (startsWith("true", args[2])) {
-                    list.add("true");
-                }
-                if (startsWith("false", args[2])) {
-                    list.add("false");
-                }
+            } else if (args.length == 3 && RulesConfigSupport.isEditableRule(main, args[1])) {
+                list.addAll(RulesConfigSupport.getValueSuggestions(main, args[1], args[2]));
             }
         } else if (args.length == 2 && args[0].equals("add")) {
             if (startsWith("speedrunner", args[1])) {
