@@ -55,16 +55,19 @@ warpShadowsCooldown: 300
 warpShadowsMaxDistance: 200
 warpShadowsBufferZone: 40
 
-# --- Обновления плагина через GitHub Releases ---
-# Главный переключатель системы обновлений
+# --- Автообновление плагина через GitHub Releases ---
+# Настройки команд: /manhunt update check и /manhunt update download
 update:
+  # true - система обновлений включена, false - полностью отключена
   enabled: true
-  # Проверка обновления при каждом запуске плагина
+  # true - проверять новую версию при запуске сервера
   checkOnStartup: true
-  # GitHub owner/repo
+  # Репозиторий с релизами в формате owner/repo
   owner: "hetasshi"
   repository: "H-Manhunt"
-  # Пока можно оставить false (только stable). Если true - учитываются prerelease.
+  # false - только обычные релизы, true - также prerelease
   allowPrerelease: false
-  # Если пусто, берется первый .jar asset из релиза
+  # Имя .jar файла из релиза для скачивания (точное совпадение, без учета регистра)
+  # Пример: "H-Manhunt-2.4.1.jar"
+  # Если оставить пустым, будет выбран первый .jar asset из релиза
   assetName: ""

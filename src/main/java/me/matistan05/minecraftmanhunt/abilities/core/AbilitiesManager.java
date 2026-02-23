@@ -15,6 +15,7 @@ import org.bukkit.util.Vector;
 import static me.matistan05.minecraftmanhunt.commands.ManhuntCommand.*;
 
 public class AbilitiesManager {
+    private static final double DIRECTION_EPSILON = 1.0e-6;
     private static final int[] ANGLE_OFFSETS = {0, 5, -5, 10, -10, 15, -15, 20, -20, 30, -30, 40, -40, 55, -55, 70,
             -70, 80, -80};
     private static final int[] RADIUS_OFFSETS = {0, -4, 4, -8, 8, -12, 12};
@@ -130,14 +131,9 @@ public class AbilitiesManager {
             return null;
         }
 
-        Vector hunterToTarget = targetLoc.toVector().subtract(hunterLoc.toVector()).setY(0);
-        if (hunterToTarget.lengthSquared() == 0) {
-            return null;
-        }
-
-        Vector preferredDir = hunterToTarget.clone().normalize().multiply(-1);
+        Vector preferredDir = resolvePreferredWarpDirection(hunterLoc, targetLoc);
         Vector hunterSide = hunterLoc.toVector().subtract(targetLoc.toVector()).setY(0);
-        if (hunterSide.lengthSquared() > 0) {
+        if (hunterSide.lengthSquared() > DIRECTION_EPSILON) {
             hunterSide.normalize();
         } else {
             hunterSide = preferredDir.clone();
@@ -174,6 +170,25 @@ public class AbilitiesManager {
         }
 
         return best;
+    }
+
+    private Vector resolvePreferredWarpDirection(Location hunterLoc, Location targetLoc) {
+        Vector hunterToTarget = targetLoc.toVector().subtract(hunterLoc.toVector()).setY(0);
+        if (hunterToTarget.lengthSquared() > DIRECTION_EPSILON) {
+            return hunterToTarget.normalize().multiply(-1);
+        }
+
+        Vector targetFacing = targetLoc.getDirection().setY(0);
+        if (targetFacing.lengthSquared() > DIRECTION_EPSILON) {
+            return targetFacing.normalize().multiply(-1);
+        }
+
+        Vector hunterFacing = hunterLoc.getDirection().setY(0);
+        if (hunterFacing.lengthSquared() > DIRECTION_EPSILON) {
+            return hunterFacing.normalize();
+        }
+
+        return new Vector(1, 0, 0);
     }
 
     private Location findSafeLocationNearY(Location base) {

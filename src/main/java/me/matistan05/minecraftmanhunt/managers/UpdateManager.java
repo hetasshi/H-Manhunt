@@ -10,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -363,7 +364,7 @@ public class UpdateManager {
         boolean leftNumeric = left.chars().allMatch(Character::isDigit);
         boolean rightNumeric = right.chars().allMatch(Character::isDigit);
         if (leftNumeric && rightNumeric) {
-            return Integer.compare(Integer.parseInt(left), Integer.parseInt(right));
+            return new BigInteger(left).compareTo(new BigInteger(right));
         }
         if (leftNumeric) {
             return 1;
