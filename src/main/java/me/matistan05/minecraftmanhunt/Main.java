@@ -35,14 +35,25 @@ public final class Main extends JavaPlugin {
         new MenuListener(this);
         new DisconnectListener(this);
         new DamageListener(this);
-        JavaPlugin.getPlugin(this.getClass()).getLogger().info(
-                "\n\n*********************************************************\n" +
-                        "Thank you for using this plugin! <3\n" +
-                        "Author: Matistan\n" +
-                        "Co-Author: hetashi (refining this plugin now)\n" +
-                        "If you enjoy this plugin, please rate it on spigotmc.org:\n" +
-                        "https://www.spigotmc.org/resources/manhunt.109010/\n" +
-                        "*********************************************************\n");
+
+        String o = net.md_5.bungee.api.ChatColor.of("#eb5e28").toString();
+        String w = net.md_5.bungee.api.ChatColor.of("#fffcf2").toString();
+        String g = net.md_5.bungee.api.ChatColor.of("#ccc5b9").toString();
+        boolean autoUpdaterEnabled = getConfig().getBoolean("update.enabled", true)
+                && getConfig().getBoolean("update.checkOnStartup", true);
+        String autoUpdaterStatus = autoUpdaterEnabled ? w + "enabled" : g + "disabled";
+        getServer().getConsoleSender().sendMessage(new String[] {
+                "",
+                o + "=========================================================",
+                o + "Thank you for using H-Manhunt! " + net.md_5.bungee.api.ChatColor.RED + "❤",
+                o + "Original Author: " + w + "Matistan05",
+                o + "Fork & Maintainer: " + w + "hetashi",
+                o + "Version: " + w + getPluginMeta().getVersion(),
+                o + "Updates: " + w + "GitHub Releases " + g + "(auto-updater: " + autoUpdaterStatus + g + ")",
+                o + "=========================================================",
+                ""
+        });
+
         updateManager.checkOnStartup();
     }
 

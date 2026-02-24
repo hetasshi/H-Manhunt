@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.matistan05.minecraftmanhunt.Main;
+import net.md_5.bungee.api.ChatColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -27,6 +28,10 @@ import java.util.List;
 public class UpdateManager {
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final String USER_AGENT = "H-Manhunt-Updater";
+    private static final String COLOR_ORANGE = ChatColor.of("#eb5e28").toString();
+    private static final String COLOR_GRAY = ChatColor.of("#ccc5b9").toString();
+    private static final String CONSOLE_PREFIX = "[H-Manhunt] [Updater] ";
+    private static final String CHAT_PREFIX = "<gray>[<white>H-Manhunt</white>]</gray> <gray>[Updater]</gray> ";
 
     private final Main main;
     private final HttpClient httpClient;
@@ -40,11 +45,11 @@ public class UpdateManager {
 
     public void checkOnStartup() {
         if (!isEnabled()) {
-            main.getLogger().info("[Updater] Проверка обновлений отключена в config.yml");
+            sendConsoleInfo("Проверка обновлений отключена в config.yml.");
             return;
         }
         if (!main.getConfig().getBoolean("update.checkOnStartup", true)) {
-            main.getLogger().info("[Updater] Автопроверка при запуске отключена в config.yml");
+            sendConsoleInfo("Автопроверка при запуске отключена в config.yml.");
             return;
         }
         checkAsync(null, false, true);
@@ -52,7 +57,7 @@ public class UpdateManager {
 
     public void checkByCommand(CommandSender sender) {
         if (!isEnabled()) {
-            sendMessage(sender, "<red>Проверка обновлений отключена в config.yml (update.enabled: false).");
+            sendMessage(sender, CHAT_PREFIX + "<red>Проверка обновлений отключена в config.yml (update.enabled: false).</red>");
             return;
         }
         checkAsync(sender, false, false);
@@ -60,17 +65,18 @@ public class UpdateManager {
 
     public void downloadByCommand(CommandSender sender) {
         if (!isEnabled()) {
-            sendMessage(sender, "<red>Проверка обновлений отключена в config.yml (update.enabled: false).");
+            sendMessage(sender, CHAT_PREFIX + "<red>Проверка обновлений отключена в config.yml (update.enabled: false).</red>");
             return;
         }
         checkAsync(sender, true, false);
     }
 
     private void checkAsync(CommandSender sender, boolean downloadIfAvailable, boolean startupMode) {
+        String currentVersionRaw = main.getPluginMeta().getVersion();
         if (!startupMode) {
-            sendMessage(sender, "<gray>Проверяю обновления на GitHub...</gray>");
+            sendMessage(sender, CHAT_PREFIX + "<gray>Проверяю обновления на GitHub...</gray>");
         } else {
-            main.getLogger().info("[Updater] Проверяю обновления на GitHub...");
+            sendConsoleInfo("Проверяю обновления на GitHub... Текущая версия: " + currentVersionRaw + ".");
         }
 
         Bukkit.getScheduler().runTaskAsynchronously(main, () -> {
@@ -81,27 +87,23 @@ public class UpdateManager {
                     return;
                 }
 
-                String currentVersion = normalizeVersion(main.getPluginMeta().getVersion());
+                String currentVersion = normalizeVersion(currentVersionRaw);
                 String latestVersion = normalizeVersion(release.tagName());
 
                 if (compareVersions(latestVersion, currentVersion) <= 0) {
-                    announceNoUpdates(sender, startupMode, currentVersion);
+                    announceNoUpdates(sender, startupMode, currentVersionRaw);
                     return;
                 }
 
-                announceUpdateAvailable(sender, startupMode, currentVersion, latestVersion, release.assetName());
+                announceUpdateAvailable(sender, startupMode, currentVersionRaw, release.tagName(), release.assetName());
                 if (!downloadIfAvailable) {
                     return;
                 }
 
                 Path downloadedPath = downloadToUpdateFolder(release);
-                announceDownloaded(sender, latestVersion, downloadedPath);
+                announceDownloaded(sender, release.tagName(), downloadedPath);
             } catch (Exception e) {
-                String message = "[Updater] Ошибка при проверке обновлений: " + e.getMessage();
-                main.getLogger().warning(message);
-                if (!startupMode) {
-                    sendMessage(sender, "<red>Ошибка при проверке/скачивании обновления: <white>" + e.getMessage());
-                }
+                announceFailure(sender, startupMode, e);
             }
         });
     }
@@ -262,18 +264,18 @@ public class UpdateManager {
     }
 
     private void announceNoRelease(CommandSender sender, boolean startupMode) {
-        String message = "<gray>[Updater] Не удалось найти подходящий релиз с .jar в GitHub Releases.</gray>";
+        String message = CHAT_PREFIX + "<gray>Не удалось найти подходящий релиз с .jar в GitHub Releases.</gray>";
         if (startupMode) {
-            main.getLogger().info("[Updater] Не удалось найти подходящий релиз с .jar в GitHub Releases.");
+            sendConsoleInfo("Не удалось найти подходящий релиз с .jar в GitHub Releases.");
             return;
         }
         sendMessage(sender, message);
     }
 
     private void announceNoUpdates(CommandSender sender, boolean startupMode, String currentVersion) {
-        String message = "<gray>[Updater] Обновлений нет. Текущая версия: <white>" + currentVersion + "</white>.</gray>";
+        String message = CHAT_PREFIX + "<gray>Обновлений нет. Текущая версия: <white>" + currentVersion + "</white>.</gray>";
         if (startupMode) {
-            main.getLogger().info("[Updater] Обновлений нет. Текущая версия: " + currentVersion + ".");
+            sendConsoleInfo("Обновлений нет. Текущая версия: " + currentVersion + ".");
             return;
         }
         sendMessage(sender, message);
@@ -281,20 +283,18 @@ public class UpdateManager {
 
     private void announceUpdateAvailable(CommandSender sender, boolean startupMode, String currentVersion,
                                          String latestVersion, String assetName) {
-        String text = "[Updater] Доступно обновление: " + currentVersion + " -> " + latestVersion
-                + " (" + assetName + ")";
         if (startupMode) {
-            main.getLogger().info(text);
+            sendConsoleInfo("Доступно обновление: " + currentVersion + " -> " + latestVersion + " (" + assetName + ")");
             return;
         }
-        sendMessage(sender, "<green>[Updater] Доступно обновление: <white>" + currentVersion + " <gray>-></gray> "
-                + latestVersion + "</white> <gray>(" + assetName + ")</gray>");
+        sendMessage(sender, CHAT_PREFIX + "<green>Доступно обновление: <white>" + currentVersion + " <gray>-></gray> "
+                + latestVersion + "</white> <gray>(" + escapeMiniMessage(assetName) + ")</gray>");
     }
 
     private void announceDownloaded(CommandSender sender, String latestVersion, Path downloadedPath) {
-        sendMessage(sender, "<green>[Updater] Обновление " + latestVersion + " скачано в: <white>"
-                + downloadedPath + "</white>");
-        sendMessage(sender, "<gray>[Updater] Перезапустите сервер, чтобы обновление применилось.</gray>");
+        sendMessage(sender, CHAT_PREFIX + "<green>Обновление " + latestVersion + " скачано в: <white>"
+                + escapeMiniMessage(downloadedPath.toString()) + "</white>");
+        sendMessage(sender, CHAT_PREFIX + "<gray>Перезапустите сервер, чтобы обновление применилось.</gray>");
     }
 
     private void sendMessage(CommandSender sender, String message) {
@@ -377,6 +377,34 @@ public class UpdateManager {
 
     private String urlEncode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private void announceFailure(CommandSender sender, boolean startupMode, Exception exception) {
+        String details = exception.getMessage();
+        if (details == null || details.isBlank()) {
+            details = exception.getClass().getSimpleName();
+        }
+
+        sendConsoleError("Ошибка при проверке/скачивании обновления: " + details);
+        if (!startupMode) {
+            sendMessage(sender, CHAT_PREFIX + "<red>Ошибка при проверке/скачивании обновления: <white>"
+                    + escapeMiniMessage(details) + "</white></red>");
+        }
+    }
+
+    private void sendConsoleInfo(String message) {
+        main.getServer().getConsoleSender().sendMessage(COLOR_ORANGE + CONSOLE_PREFIX + COLOR_GRAY + message);
+    }
+
+    private void sendConsoleError(String message) {
+        main.getServer().getConsoleSender().sendMessage(COLOR_ORANGE + CONSOLE_PREFIX + ChatColor.RED + message);
+    }
+
+    private String escapeMiniMessage(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        return MM.escapeTags(raw);
     }
 
     private record ReleaseInfo(String tagName, String assetName, String downloadUrl) {
