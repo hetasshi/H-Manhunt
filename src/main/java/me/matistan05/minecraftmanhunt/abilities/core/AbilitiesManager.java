@@ -4,6 +4,7 @@ import me.matistan05.minecraftmanhunt.Main;
 import me.matistan05.minecraftmanhunt.classes.Hunter;
 import me.matistan05.minecraftmanhunt.classes.Speedrunner;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.HeightMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -19,9 +20,18 @@ public class AbilitiesManager {
     private static final int[] ANGLE_OFFSETS = {0, 5, -5, 10, -10, 15, -15, 20, -20, 30, -30, 40, -40, 55, -55, 70,
             -70, 80, -80};
     private static final int[] RADIUS_OFFSETS = {0, -4, 4, -8, 8, -12, 12};
+    private static final int[] EXPANDED_RADIUS_OFFSETS = {8, 16, 24};
     private static final int[] VERTICAL_SEARCH_RANGES = {4, 8, 14, 22};
+    private static final int[] SURFACE_VERTICAL_SEARCH_RANGES = {2, 4, 8};
+    private static final double WATER_PENALTY_SCORE = 120.0;
 
     private final Main main;
+
+    private enum SearchStrategy {
+        LOCAL_ONLY,
+        SURFACE_ONLY,
+        LOCAL_THEN_SURFACE
+    }
 
     public AbilitiesManager(Main main) {
         this.main = main;
@@ -139,12 +149,30 @@ public class AbilitiesManager {
             hunterSide = preferredDir.clone();
         }
 
+        Location primary = findBestWarpLocationForStrategy(targetLoc, preferredDir, hunterSide, maxDist, RADIUS_OFFSETS,
+                SearchStrategy.LOCAL_ONLY);
+        if (primary != null) {
+            return primary;
+        }
+
+        Location surfaceFallback = findBestWarpLocationForStrategy(targetLoc, preferredDir, hunterSide, maxDist,
+                RADIUS_OFFSETS, SearchStrategy.SURFACE_ONLY);
+        if (surfaceFallback != null) {
+            return surfaceFallback;
+        }
+
+        return findBestWarpLocationForStrategy(targetLoc, preferredDir, hunterSide, maxDist, EXPANDED_RADIUS_OFFSETS,
+                SearchStrategy.LOCAL_THEN_SURFACE);
+    }
+
+    private Location findBestWarpLocationForStrategy(Location targetLoc, Vector preferredDir, Vector hunterSide, int maxDist,
+                                                     int[] radiusOffsets, SearchStrategy strategy) {
         Location best = null;
         double bestScore = Double.MAX_VALUE;
 
         for (int angleOffset : ANGLE_OFFSETS) {
             double radians = Math.toRadians(angleOffset);
-            for (int radiusOffset : RADIUS_OFFSETS) {
+            for (int radiusOffset : radiusOffsets) {
                 int radius = Math.max(4, maxDist + radiusOffset);
                 Vector dir = preferredDir.clone().rotateAroundY(radians);
                 Location candidateXZ = targetLoc.clone().add(dir.multiply(radius));
@@ -153,14 +181,12 @@ public class AbilitiesManager {
                     continue;
                 }
 
-                Location safeCandidate = findSafeLocationNearY(candidateXZ);
+                Location safeCandidate = resolveSafeCandidate(candidateXZ, strategy);
                 if (safeCandidate == null || isAheadOfTarget(safeCandidate, targetLoc, hunterSide)) {
                     continue;
                 }
 
-                double yShift = Math.abs(safeCandidate.getY() - candidateXZ.getY());
-                double waterPenalty = isWater(safeCandidate.getBlock().getType()) ? 5.0 : 0.0;
-                double score = Math.abs(angleOffset) * 1000.0 + Math.abs(radiusOffset) * 20.0 + yShift + waterPenalty;
+                double score = calculateCandidateScore(candidateXZ, safeCandidate, angleOffset, radiusOffset);
 
                 if (score < bestScore) {
                     bestScore = score;
@@ -170,6 +196,29 @@ public class AbilitiesManager {
         }
 
         return best;
+    }
+
+    private Location resolveSafeCandidate(Location candidateXZ, SearchStrategy strategy) {
+        if (strategy == SearchStrategy.LOCAL_ONLY) {
+            return findSafeLocationNearY(candidateXZ);
+        }
+
+        if (strategy == SearchStrategy.SURFACE_ONLY) {
+            return findSafeSurfaceLocation(candidateXZ);
+        }
+
+        Location localCandidate = findSafeLocationNearY(candidateXZ);
+        if (localCandidate != null) {
+            return localCandidate;
+        }
+
+        return findSafeSurfaceLocation(candidateXZ);
+    }
+
+    private double calculateCandidateScore(Location candidateXZ, Location safeCandidate, int angleOffset, int radiusOffset) {
+        double yShift = Math.abs(safeCandidate.getY() - candidateXZ.getY());
+        double waterPenalty = isWater(safeCandidate.getBlock().getType()) ? WATER_PENALTY_SCORE : 0.0;
+        return Math.abs(angleOffset) * 1000.0 + Math.abs(radiusOffset) * 20.0 + yShift + waterPenalty;
     }
 
     private Vector resolvePreferredWarpDirection(Location hunterLoc, Location targetLoc) {
@@ -192,6 +241,10 @@ public class AbilitiesManager {
     }
 
     private Location findSafeLocationNearY(Location base) {
+        return findSafeLocationNearY(base, VERTICAL_SEARCH_RANGES);
+    }
+
+    private Location findSafeLocationNearY(Location base, int[] ranges) {
         World world = base.getWorld();
         if (world == null) {
             return null;
@@ -201,7 +254,7 @@ public class AbilitiesManager {
         int maxY = world.getMaxHeight() - 1;
         int baseY = base.getBlockY();
 
-        for (int range : VERTICAL_SEARCH_RANGES) {
+        for (int range : ranges) {
             for (int offset = 0; offset <= range; offset++) {
                 Location positive = tryLocationAtY(base, baseY + offset, minY, maxY);
                 if (positive != null) {
@@ -220,6 +273,19 @@ public class AbilitiesManager {
         }
 
         return null;
+    }
+
+    private Location findSafeSurfaceLocation(Location base) {
+        World world = base.getWorld();
+        if (world == null) {
+            return null;
+        }
+
+        int surfaceY = world.getHighestBlockYAt(base.getBlockX(), base.getBlockZ(), HeightMap.MOTION_BLOCKING_NO_LEAVES);
+        Location surfaceBase = base.clone();
+        surfaceBase.setY(surfaceY + 1);
+
+        return findSafeLocationNearY(surfaceBase, SURFACE_VERTICAL_SEARCH_RANGES);
     }
 
     private Location tryLocationAtY(Location base, int y, int minY, int maxY) {
