@@ -1,4 +1,4 @@
-# Скрипт для сборки плагина и копирования его в папку plugins
+# Скрипт для сборки плагина
 
 Write-Host "--- Начинаю сборку плагина H-Manhunt ---" -ForegroundColor Cyan
 
@@ -18,22 +18,5 @@ if ($null -eq $jarFile) {
     exit 1
 }
 
-Write-Host "--- Файл найден: $($jarFile.Name) ---" -ForegroundColor Green
-
-# 3. Копирование в папку plugins
-$targetDir = "..\plugins"
-Write-Host "--- Копирую в $targetDir ---" -ForegroundColor Yellow
-
-# 3.1. Получение версии из pom.xml
-$pomVersion = Select-String -Path "pom.xml" -Pattern "<version>([^<]+)</version>" | Select-Object -First 1
-$version = if ($pomVersion) { $pomVersion.Matches[0].Groups[1].Value } else { "unknown" }
-
-# 3.2. Получение автора из pom.xml (закомментировано)
-# $pomAuthor = Select-String -Path "pom.xml" -Pattern "<author>([^<]+)</author>" | Select-Object -First 1
-# $author = if ($pomAuthor) { $pomAuthor.Matches[0].Groups[1].Value } else { "unknown" }
-
-# 3.3. Копирование JAR файла
-# Copy-Item $jarFile.FullName -Destination "$targetDir\H-Manhunt-$version-$author.jar" -Force
-Copy-Item $jarFile.FullName -Destination "$targetDir\H-Manhunt-$version.jar" -Force
-
-Write-Host "--- Готово! Теперь перезагрузи сервер или введи /reload ---" -ForegroundColor Green
+Write-Host "--- Сборка завершена успешно! ---" -ForegroundColor Green
+Write-Host "--- Файл: $($jarFile.FullName) ---" -ForegroundColor Cyan
