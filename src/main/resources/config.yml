@@ -46,6 +46,9 @@ useBossBarRadar: false
 # Если true, команды /manhunt pause и /manhunt unpause доступны
 enablePauses: true
 
+# Если true, во время активной игры печки плавят в 2 раза быстрее
+fastplavka: true
+
 # --- Казуальный режим ---
 # Включает способности охотников через компас (Shift + ПКМ)
 casual: true

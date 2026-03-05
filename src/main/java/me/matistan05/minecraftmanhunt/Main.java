@@ -35,6 +35,7 @@ public final class Main extends JavaPlugin {
         new MenuListener(this);
         new DisconnectListener(this);
         new DamageListener(this);
+        new FurnaceSpeedListener(this);
 
         String o = net.md_5.bungee.api.ChatColor.of("#eb5e28").toString();
         String w = net.md_5.bungee.api.ChatColor.of("#fffcf2").toString();
