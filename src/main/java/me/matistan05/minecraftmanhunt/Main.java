@@ -5,6 +5,7 @@ import me.matistan05.minecraftmanhunt.abilities.gui.AbilitiesMenu;
 import me.matistan05.minecraftmanhunt.abilities.listeners.AbilitiesController;
 import me.matistan05.minecraftmanhunt.commands.ManhuntCommand;
 import me.matistan05.minecraftmanhunt.commands.ManhuntCompleter;
+import me.matistan05.minecraftmanhunt.managers.MatchWorldManager;
 import me.matistan05.minecraftmanhunt.managers.UpdateManager;
 import me.matistan05.minecraftmanhunt.listeners.*;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -15,10 +16,12 @@ import static me.matistan05.minecraftmanhunt.commands.ManhuntCommand.reset;
 
 public final class Main extends JavaPlugin {
     private UpdateManager updateManager;
+    private MatchWorldManager matchWorldManager;
 
     public void onEnable() {
         saveDefaultConfig();
         updateManager = new UpdateManager(this);
+        matchWorldManager = new MatchWorldManager(this);
 
         AbilitiesManager abilitiesManager = new AbilitiesManager(this);
         AbilitiesMenu abilitiesMenu = new AbilitiesMenu(this);
@@ -36,6 +39,7 @@ public final class Main extends JavaPlugin {
         new DisconnectListener(this);
         new DamageListener(this);
         new FurnaceSpeedListener(this);
+        new PortalLinkListener(this);
 
         String o = net.md_5.bungee.api.ChatColor.of("#eb5e28").toString();
         String w = net.md_5.bungee.api.ChatColor.of("#fffcf2").toString();
@@ -67,5 +71,9 @@ public final class Main extends JavaPlugin {
 
     public UpdateManager getUpdateManager() {
         return updateManager;
+    }
+
+    public MatchWorldManager getMatchWorldManager() {
+        return matchWorldManager;
     }
 }

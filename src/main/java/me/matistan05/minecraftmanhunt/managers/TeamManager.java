@@ -1,7 +1,7 @@
 package me.matistan05.minecraftmanhunt.managers;
 
 import me.matistan05.minecraftmanhunt.Main;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.scoreboard.Scoreboard;
@@ -10,7 +10,6 @@ import org.bukkit.scoreboard.Team;
 public class TeamManager {
     private final Main main;
     private final Scoreboard scoreboard;
-    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     public TeamManager(Main main) {
         this.main = main;
@@ -23,9 +22,9 @@ public class TeamManager {
         }
         Team huntersTeam = scoreboard.registerNewTeam("hunters");
         huntersTeam.setAllowFriendlyFire(main.getConfig().getBoolean("friendlyFire"));
-        huntersTeam.color(NamedTextColor.RED);
-        huntersTeam.prefix(LEGACY.deserialize("§7[§c§lHunter§7] §f"));
-        huntersTeam.suffix(LEGACY.deserialize(" §c⚔"));
+        huntersTeam.color(NamedTextColor.WHITE);
+        huntersTeam.prefix(Component.empty());
+        huntersTeam.suffix(Component.empty());
         huntersTeam.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
 
         if (scoreboard.getTeam("speedrunners") != null) {
@@ -33,9 +32,9 @@ public class TeamManager {
         }
         Team speedrunnersTeam = scoreboard.registerNewTeam("speedrunners");
         speedrunnersTeam.setAllowFriendlyFire(main.getConfig().getBoolean("friendlyFire"));
-        speedrunnersTeam.color(NamedTextColor.GREEN);
-        speedrunnersTeam.prefix(LEGACY.deserialize("§7[§a§lRunner§7] §f"));
-        speedrunnersTeam.suffix(LEGACY.deserialize(" §a🗲"));
+        speedrunnersTeam.color(NamedTextColor.WHITE);
+        speedrunnersTeam.prefix(Component.empty());
+        speedrunnersTeam.suffix(Component.empty());
         speedrunnersTeam.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
     }
 

@@ -6,7 +6,7 @@
 
     <groupId>me.matistan05</groupId>
     <artifactId>H-Manhunt</artifactId>
-    <version>2.2</version>
+    <version>2.3</version>
     <packaging>jar</packaging>
 
     <name>H-Manhunt</name>

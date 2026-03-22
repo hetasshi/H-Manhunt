@@ -43,6 +43,7 @@ public class ManhuntCommand implements CommandExecutor {
     public static List<String> unpausePlayers = new LinkedList<>();
     public static Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
     public static Player findPlayer;
+    public static Location startLocation;
     public static TeamManager teamManager;
     public static WaypointManager waypointManager;
     public static RadarManager radarManager;
@@ -377,6 +378,23 @@ public class ManhuntCommand implements CommandExecutor {
                 setWeatherAllWorlds(false);
             }
             findPlayer = null;
+            startLocation = null;
+
+            var preparedMatchWorld = main.getMatchWorldManager().prepareMatchWorld();
+            if (!preparedMatchWorld.success()) {
+                p.sendMessage(mm.deserialize("<red>Не удалось подготовить матч-мир: <white>"
+                        + preparedMatchWorld.detailMessage()));
+                return true;
+            }
+            if (preparedMatchWorld.enabled()) {
+                startLocation = preparedMatchWorld.candidate().startLocation();
+                if (preparedMatchWorld.detailMessage() != null) {
+                    p.sendMessage(mm.deserialize("<gray>Выбран матч-мир: <white>"
+                            + preparedMatchWorld.candidate().world().getName()
+                            + "</white> <dark_gray>(" + preparedMatchWorld.detailMessage() + ")"));
+                }
+            }
+
             if (main.getConfig().getBoolean("useBossBarRadar", true)) {
                 radarManager.start();
             } else {
@@ -647,6 +665,8 @@ public class ManhuntCommand implements CommandExecutor {
         pausePlayers.clear();
         unpausePlayers.clear();
         paused = false;
+        startLocation = null;
+        main.getMatchWorldManager().resetActiveMatchWorld();
     }
 
     public static void playersMessage(String s) {
@@ -709,7 +729,9 @@ public class ManhuntCommand implements CommandExecutor {
         if (main.getConfig().getBoolean("clearInventories")) {
             player.getInventory().clear();
         }
-        if (main.getConfig().getBoolean("teleport") && !inGame) {
+        if (startLocation != null && !inGame) {
+            player.teleport(startLocation);
+        } else if (main.getConfig().getBoolean("teleport") && !inGame) {
             player.teleport(findPlayer);
         }
         player.setGameMode(GameMode.SURVIVAL);
@@ -737,6 +759,10 @@ public class ManhuntCommand implements CommandExecutor {
         } else {
             teamManager.addSpeedrunner(name);
             Speedrunner speedrunnerObject = getSpeedrunner(name);
+            String runnerHintMessage = main.getMatchWorldManager().getRunnerHintMessage();
+            if (runnerHintMessage != null && !inGame) {
+                player.sendMessage(mm.deserialize("<gradient:#55ffaa:#aaffcc>" + runnerHintMessage + "</gradient>"));
+            }
             if (player.getWorld().getEnvironment().equals(World.Environment.NORMAL)) {
                 speedrunnerObject.setLocWorld(player.getLocation());
             } else
@@ -812,10 +838,27 @@ public class ManhuntCommand implements CommandExecutor {
     }
 
     private static void setLocatorBarAllWorlds(boolean enabled) {
-        for (World world : Bukkit.getWorlds()) {
+        Collection<World> targetWorlds = resolveLocatorBarTargetWorlds();
+        for (World world : targetWorlds) {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                    "execute in " + world.getName() + " run gamerule locator_bar " + enabled);
+                    "execute in " + world.getKey() + " run gamerule locator_bar " + enabled);
         }
+    }
+
+    private static Collection<World> resolveLocatorBarTargetWorlds() {
+        if (!main.getConfig().getBoolean("matchWorlds.enabled", false)) {
+            return Bukkit.getWorlds();
+        }
+
+        Set<String> activeWorldNames = main.getMatchWorldManager().getActiveWorldNames();
+        if (activeWorldNames.isEmpty()) {
+            return Bukkit.getWorlds();
+        }
+
+        return activeWorldNames.stream()
+                .map(Bukkit::getWorld)
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     public static boolean isHunter(String name) {

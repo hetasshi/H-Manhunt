@@ -1,0 +1,401 @@
+package me.matistan05.minecraftmanhunt.managers;
+
+import me.matistan05.minecraftmanhunt.Main;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Biome;
+import org.bukkit.generator.structure.Structure;
+import org.bukkit.generator.structure.StructureType;
+import org.bukkit.util.Vector;
+import org.bukkit.util.StructureSearchResult;
+
+import java.util.Locale;
+
+public class MatchWorldEvaluator {
+    private final Main main;
+
+    public MatchWorldEvaluator(Main main) {
+        this.main = main;
+    }
+
+    public MatchWorldCandidate evaluate(World world, long seed) {
+        Location spawn = world.getSpawnLocation().clone();
+        StringBuilder summary = new StringBuilder("seed=").append(seed);
+
+        int score = scoreSpawnBiome(world, spawn, summary);
+        score += scoreImmediateSpawnSafety(world, spawn, summary);
+        score += scoreWoodAvailability(world, spawn, summary);
+        score += scoreRelief(world, spawn, summary);
+
+        StructureData village = locateVillage(world, spawn, summary);
+        StructureData ruinedPortal = locateRuinedPortal(world, spawn, summary);
+        score += village.score() + ruinedPortal.score();
+
+        StructureData anchor = pickAnchor(village, ruinedPortal);
+        Location startLocation = findStartLocation(world, spawn, anchor);
+        String runnerHintMessage = buildRunnerHint(world, startLocation, anchor);
+
+        return new MatchWorldCandidate(world, startLocation, seed, score, summary.toString(), runnerHintMessage);
+    }
+
+    private int scoreSpawnBiome(World world, Location spawn, StringBuilder summary) {
+        Biome biome = world.getBiome(spawn.getBlockX(), spawn.getBlockY(), spawn.getBlockZ());
+        String biomeKey = biome.getKey().getKey().toLowerCase(Locale.ROOT);
+        int score;
+        if (biomeKey.contains("plains") || biomeKey.contains("forest") || biomeKey.contains("savanna")) {
+            score = 25;
+        } else if (biomeKey.contains("jungle") || biomeKey.contains("taiga") || biomeKey.contains("cherry")) {
+            score = 18;
+        } else if (biomeKey.contains("desert") || biomeKey.contains("badlands")) {
+            score = 8;
+        } else if (biomeKey.contains("ocean") || biomeKey.contains("river")) {
+            score = -25;
+        } else {
+            score = 10;
+        }
+        summary.append(", biome=").append(biome.getKey().getKey()).append("(").append(score).append(")");
+        return score;
+    }
+
+    private int scoreImmediateSpawnSafety(World world, Location spawn, StringBuilder summary) {
+        Location safeSurface = findNearestSafeSurface(world, spawn, 12);
+        if (safeSurface == null) {
+            summary.append(", safe_spawn=missing(-15)");
+            return -15;
+        }
+
+        int verticalShift = Math.abs(safeSurface.getBlockY() - spawn.getBlockY());
+        int score = Math.max(4, 16 - verticalShift);
+        summary.append(", safe_spawn=").append(verticalShift).append("(").append(score).append(")");
+        return score;
+    }
+
+    private int scoreWoodAvailability(World world, Location spawn, StringBuilder summary) {
+        int logs = 0;
+        int radius = 16;
+        int originX = spawn.getBlockX();
+        int originZ = spawn.getBlockZ();
+        for (int x = -radius; x <= radius; x += 4) {
+            for (int z = -radius; z <= radius; z += 4) {
+                int blockX = originX + x;
+                int blockZ = originZ + z;
+                if (!world.isChunkLoaded(blockX >> 4, blockZ >> 4)) {
+                    continue;
+                }
+
+                int y = world.getHighestBlockYAt(blockX, blockZ);
+                for (int sampleY = Math.max(world.getMinHeight(), y - 6); sampleY <= y; sampleY++) {
+                    String blockName = world.getBlockAt(blockX, sampleY, blockZ).getType().getKey().getKey();
+                    if (blockName.endsWith("_log") || blockName.endsWith("_wood")) {
+                        logs++;
+                        break;
+                    }
+                }
+            }
+        }
+        int score = Math.min(20, logs * 2);
+        summary.append(", wood=").append(logs).append("(").append(score).append(")");
+        return score;
+    }
+
+    private int scoreRelief(World world, Location spawn, StringBuilder summary) {
+        int centerX = spawn.getBlockX();
+        int centerZ = spawn.getBlockZ();
+        if (!world.isChunkLoaded(centerX >> 4, centerZ >> 4)) {
+            summary.append(", relief=unknown(0)");
+            return 0;
+        }
+
+        int centerY = world.getHighestBlockYAt(centerX, centerZ);
+        int maxDiff = 0;
+        int radius = 32;
+        for (int x = -radius; x <= radius; x += 8) {
+            for (int z = -radius; z <= radius; z += 8) {
+                int sampleX = centerX + x;
+                int sampleZ = centerZ + z;
+                if (!world.isChunkLoaded(sampleX >> 4, sampleZ >> 4)) {
+                    continue;
+                }
+
+                int sampleY = world.getHighestBlockYAt(sampleX, sampleZ);
+                maxDiff = Math.max(maxDiff, Math.abs(sampleY - centerY));
+            }
+        }
+        int score = Math.min(15, maxDiff / 2);
+        summary.append(", relief=").append(maxDiff).append("(").append(score).append(")");
+        return score;
+    }
+
+    private StructureData locateVillage(World world, Location spawn, StringBuilder summary) {
+        Structure[] villages = {
+                Structure.VILLAGE_PLAINS,
+                Structure.VILLAGE_DESERT,
+                Structure.VILLAGE_SAVANNA,
+                Structure.VILLAGE_SNOWY,
+                Structure.VILLAGE_TAIGA
+        };
+
+        int radiusChunks = Math.max(8, main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
+        StructureData bestVillage = null;
+        for (Structure villageStructure : villages) {
+            StructureSearchResult result = world.locateNearestStructure(spawn, villageStructure, radiusChunks, false);
+            if (result == null) {
+                continue;
+            }
+
+            int distance = (int) spawn.distance(result.getLocation());
+            int score = Math.max(0, 70 - (distance / 12));
+            StructureData current = new StructureData("village", result.getLocation(), distance, score);
+            if (bestVillage == null || current.score() > bestVillage.score()) {
+                bestVillage = current;
+            }
+        }
+
+        if (bestVillage == null) {
+            summary.append(", village=none");
+            return new StructureData("village", null, Integer.MIN_VALUE, 0);
+        }
+
+        summary.append(", village=").append(bestVillage.distanceBlocks()).append("b(")
+                .append(bestVillage.score()).append(")");
+        return bestVillage;
+    }
+
+    private StructureData locateRuinedPortal(World world, Location spawn, StringBuilder summary) {
+        int radiusChunks = Math.max(8, main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
+        StructureSearchResult result = world.locateNearestStructure(spawn, StructureType.RUINED_PORTAL, radiusChunks, false);
+        if (result == null) {
+            summary.append(", ruined_portal=none");
+            return new StructureData("ruined_portal", null, Integer.MIN_VALUE, 0);
+        }
+
+        int distance = (int) spawn.distance(result.getLocation());
+        int score = Math.max(0, 56 - (distance / 12));
+        summary.append(", ruined_portal=").append(distance).append("b(").append(score).append(")");
+        return new StructureData("ruined_portal", result.getLocation(), distance, score);
+    }
+
+    private StructureData pickAnchor(StructureData... anchors) {
+        StructureData best = null;
+        for (StructureData anchor : anchors) {
+            if (anchor.location() == null) {
+                continue;
+            }
+            if (best == null || anchor.score() > best.score()) {
+                best = anchor;
+            }
+        }
+        return best;
+    }
+
+    private Location findStartLocation(World world, Location naturalSpawn, StructureData anchor) {
+        if (anchor == null || anchor.location() == null) {
+            Location safeLocation = findNearestSafeSurface(world, naturalSpawn, 20);
+            return safeLocation == null ? naturalSpawn.toCenterLocation() : safeLocation.toCenterLocation();
+        }
+
+        int desiredDistance = Math.max(40, main.getConfig().getInt("matchWorlds.autoGenerate.startDistanceFromAnchor", 100));
+        Location anchorLocation = anchor.location().clone();
+        Vector direction = naturalSpawn.toVector().subtract(anchorLocation.toVector()).setY(0);
+        if (direction.lengthSquared() < 1.0) {
+            direction = new Vector(1, 0, 0);
+        }
+
+        Location candidate = anchorLocation.clone().add(direction.normalize().multiply(desiredDistance));
+        Location safeLocation = findNearestSafeSurface(world, candidate, 24);
+        return safeLocation == null ? naturalSpawn.toCenterLocation() : safeLocation.toCenterLocation();
+    }
+
+    private Location findNearestSafeSurface(World world, Location candidate, int spread) {
+        int[][] offsets = {
+                {0, 0}, {spread, 0}, {-spread, 0}, {0, spread}, {0, -spread},
+                {spread, spread}, {-spread, spread}, {spread, -spread}, {-spread, -spread}
+        };
+        for (int[] offset : offsets) {
+            int x = candidate.getBlockX() + offset[0];
+            int z = candidate.getBlockZ() + offset[1];
+            if (!world.isChunkLoaded(x >> 4, z >> 4)) {
+                continue;
+            }
+            int y = world.getHighestBlockYAt(x, z);
+            Location surface = new Location(world, x + 0.5, y + 1, z + 0.5);
+            if (!surface.getBlock().isLiquid() && !surface.clone().subtract(0, 1, 0).getBlock().isLiquid()) {
+                return surface;
+            }
+        }
+        return null;
+    }
+
+    private String buildRunnerHint(World world, Location startLocation, StructureData anchor) {
+        if (anchor != null && anchor.location() != null) {
+            String sourceName = switch (anchor.structureKey()) {
+                case "village" -> "деревня";
+                case "ruined_portal" -> "разрушенный портал";
+                default -> "полезная точка";
+            };
+            return "Подсказка: " + sourceName + " " + directionFromTo(startLocation, anchor.location()) + ".";
+        }
+
+        HintTarget bestHint = null;
+        int[][] directions = {
+                {0, -48}, {48, -48}, {48, 0}, {48, 48},
+                {0, 48}, {-48, 48}, {-48, 0}, {-48, -48}
+        };
+
+        for (int[] direction : directions) {
+            int sampleX = startLocation.getBlockX() + direction[0];
+            int sampleZ = startLocation.getBlockZ() + direction[1];
+            if (!world.isChunkLoaded(sampleX >> 4, sampleZ >> 4)) {
+                continue;
+            }
+
+            Biome biome = world.getBiome(sampleX, startLocation.getBlockY(), sampleZ);
+            String biomeKey = biome.getKey().getKey().toLowerCase(Locale.ROOT);
+            int score = scoreHintBiome(biomeKey);
+            boolean hasWood = hasWoodNearby(world, sampleX, sampleZ, 8);
+            boolean hasWater = hasWaterNearby(world, sampleX, sampleZ, 8);
+
+            if (hasWood) {
+                score += 8;
+            }
+            if (hasWater) {
+                score += 4;
+            }
+
+            String directionText = directionFromOffset(direction[0], direction[1]);
+            String featureText = describeFeature(biomeKey, hasWood, hasWater);
+            HintTarget current = new HintTarget(directionText, featureText, score);
+            if (bestHint == null || current.score() > bestHint.score()) {
+                bestHint = current;
+            }
+        }
+
+        if (bestHint == null) {
+            return "Подсказка: осмотрись у спавна и держись суши с деревьями.";
+        }
+
+        return "Подсказка: " + bestHint.featureText() + " " + bestHint.directionText() + ".";
+    }
+
+    private String directionFromTo(Location from, Location to) {
+        double dx = to.getX() - from.getX();
+        double dz = to.getZ() - from.getZ();
+        String northSouth = dz < -12 ? "к северу" : dz > 12 ? "к югу" : "";
+        String westEast = dx > 12 ? "к востоку" : dx < -12 ? "к западу" : "";
+        if (!northSouth.isEmpty() && !westEast.isEmpty()) {
+            return northSouth + "-" + westEast.replace("к ", "");
+        }
+        if (!northSouth.isEmpty()) {
+            return northSouth;
+        }
+        if (!westEast.isEmpty()) {
+            return westEast;
+        }
+        return "совсем рядом";
+    }
+
+    private int scoreHintBiome(String biomeKey) {
+        if (biomeKey.contains("forest") || biomeKey.contains("plains") || biomeKey.contains("savanna")) {
+            return 12;
+        }
+        if (biomeKey.contains("taiga") || biomeKey.contains("jungle") || biomeKey.contains("cherry")) {
+            return 10;
+        }
+        if (biomeKey.contains("river") || biomeKey.contains("beach")) {
+            return 7;
+        }
+        if (biomeKey.contains("ocean")) {
+            return 2;
+        }
+        if (biomeKey.contains("desert") || biomeKey.contains("badlands")) {
+            return 4;
+        }
+        return 6;
+    }
+
+    private boolean hasWoodNearby(World world, int centerX, int centerZ, int radius) {
+        for (int x = -radius; x <= radius; x += 4) {
+            for (int z = -radius; z <= radius; z += 4) {
+                int sampleX = centerX + x;
+                int sampleZ = centerZ + z;
+                if (!world.isChunkLoaded(sampleX >> 4, sampleZ >> 4)) {
+                    continue;
+                }
+
+                int y = world.getHighestBlockYAt(sampleX, sampleZ);
+                for (int sampleY = Math.max(world.getMinHeight(), y - 6); sampleY <= y; sampleY++) {
+                    String blockName = world.getBlockAt(sampleX, sampleY, sampleZ).getType().getKey().getKey();
+                    if (blockName.endsWith("_log") || blockName.endsWith("_wood")) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean hasWaterNearby(World world, int centerX, int centerZ, int radius) {
+        for (int x = -radius; x <= radius; x += 4) {
+            for (int z = -radius; z <= radius; z += 4) {
+                int sampleX = centerX + x;
+                int sampleZ = centerZ + z;
+                if (!world.isChunkLoaded(sampleX >> 4, sampleZ >> 4)) {
+                    continue;
+                }
+
+                int y = world.getHighestBlockYAt(sampleX, sampleZ);
+                String blockName = world.getBlockAt(sampleX, y - 1, sampleZ).getType().getKey().getKey();
+                if (blockName.contains("water")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private String describeFeature(String biomeKey, boolean hasWood, boolean hasWater) {
+        if (hasWood && hasWater) {
+            return "рядом лес и вода";
+        }
+        if (hasWood) {
+            return "рядом деревья и удобная суша";
+        }
+        if (biomeKey.contains("plains")) {
+            return "там открытая равнина";
+        }
+        if (biomeKey.contains("forest")) {
+            return "там лес";
+        }
+        if (biomeKey.contains("savanna")) {
+            return "там саванна";
+        }
+        if (biomeKey.contains("river") || hasWater) {
+            return "рядом вода";
+        }
+        if (biomeKey.contains("desert")) {
+            return "там пустыня";
+        }
+        return "там более удобный маршрут";
+    }
+
+    private String directionFromOffset(int dx, int dz) {
+        String northSouth = dz < 0 ? "к северу" : dz > 0 ? "к югу" : "";
+        String westEast = dx > 0 ? "востоку" : dx < 0 ? "западу" : "";
+        if (!northSouth.isEmpty() && !westEast.isEmpty()) {
+            return northSouth + "-" + westEast;
+        }
+        if (!northSouth.isEmpty()) {
+            return northSouth;
+        }
+        if (!westEast.isEmpty()) {
+            return "к " + westEast;
+        }
+        return "совсем рядом";
+    }
+
+    private record HintTarget(String directionText, String featureText, int score) {
+    }
+
+    private record StructureData(String structureKey, Location location, int distanceBlocks, int score) {
+    }
+}
