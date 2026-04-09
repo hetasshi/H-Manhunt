@@ -712,6 +712,9 @@ public class ManhuntCommand implements CommandExecutor {
     public static void start() {
         playersTitle(mm.deserialize("<gradient:#aa0000:#ff0000><bold>СТАРТ!</bold></gradient>"));
         playersMessage(mm.deserialize("<gradient:#ff4444:#ffaaaa>Игра началась!</gradient>"));
+        if (startLocation != null && startLocation.getWorld() != null) {
+            startLocation.getWorld().playSound(startLocation, Sound.ITEM_GOAT_HORN_SOUND_5, 0.45f, 1.0f);
+        }
         for (Hunter hunterObject : hunters) {
             Player hunter = Bukkit.getPlayerExact(hunterObject.getName());
             if (hunter != null)
@@ -762,7 +765,6 @@ public class ManhuntCommand implements CommandExecutor {
             String runnerHintMessage = main.getMatchWorldManager().getRunnerHintMessage();
             if (runnerHintMessage != null && !inGame) {
                 player.sendMessage(mm.deserialize("<gradient:#55ffaa:#aaffcc>" + runnerHintMessage + "</gradient>"));
-                player.playSound(player.getLocation(), Sound.ITEM_GOAT_HORN_SOUND_5, 0.45f, 1.0f);
             }
             if (player.getWorld().getEnvironment().equals(World.Environment.NORMAL)) {
                 speedrunnerObject.setLocWorld(player.getLocation());

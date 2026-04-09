@@ -139,7 +139,8 @@ public class MatchWorldEvaluator {
                 Structure.VILLAGE_TAIGA
         };
 
-        int radiusChunks = Math.max(8, main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
+        int radiusChunks = Math.max(8,
+                main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
         boolean preferVillageWithSmithBuilding = main.getConfig().getBoolean(
                 "matchWorlds.autoGenerate.preferVillageWithSmithBuilding", true);
         boolean requireVillageWithSmithBuilding = main.getConfig().getBoolean(
@@ -156,7 +157,8 @@ public class MatchWorldEvaluator {
 
             int distance = (int) spawn.distance(result.getLocation());
             int score = Math.max(0, 70 - (distance / 12));
-            SmithBuildingData smithBuilding = findVillageSmithBuilding(world, result.getLocation(), smithSearchRadiusBlocks);
+            SmithBuildingData smithBuilding = findVillageSmithBuilding(world, result.getLocation(),
+                    smithSearchRadiusBlocks);
             score += smithBuilding.scoreBonus();
 
             StructureData current = new StructureData(
@@ -176,8 +178,8 @@ public class MatchWorldEvaluator {
         StructureData selectedVillage = requireVillageWithSmithBuilding && bestSmithVillage != null
                 ? bestSmithVillage
                 : preferVillageWithSmithBuilding && bestSmithVillage != null
-                ? bestSmithVillage
-                : bestVillage;
+                        ? bestSmithVillage
+                        : bestVillage;
 
         if (selectedVillage == null) {
             summary.append(", village=none");
@@ -200,8 +202,10 @@ public class MatchWorldEvaluator {
     }
 
     private StructureData locateRuinedPortal(World world, Location spawn, StringBuilder summary) {
-        int radiusChunks = Math.max(8, main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
-        StructureSearchResult result = world.locateNearestStructure(spawn, StructureType.RUINED_PORTAL, radiusChunks, false);
+        int radiusChunks = Math.max(8,
+                main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
+        StructureSearchResult result = world.locateNearestStructure(spawn, StructureType.RUINED_PORTAL, radiusChunks,
+                false);
         if (result == null) {
             summary.append(", ruined_portal=none");
             return new StructureData("ruined_portal", null, Integer.MIN_VALUE, 0);
@@ -214,7 +218,8 @@ public class MatchWorldEvaluator {
     }
 
     private StructureData locateShipwreck(World world, Location spawn, StringBuilder summary) {
-        int radiusChunks = Math.max(8, main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
+        int radiusChunks = Math.max(8,
+                main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
         StructureData bestShipwreck = null;
         Structure[] shipwreckStructures = {
                 Structure.SHIPWRECK,
@@ -249,7 +254,8 @@ public class MatchWorldEvaluator {
     }
 
     private StructureData locateRareStructure(World world, Location spawn, StringBuilder summary) {
-        int radiusChunks = Math.max(16, main.getConfig().getInt("matchWorlds.autoGenerate.rareStructureSearchRadiusChunks", 32));
+        int radiusChunks = Math.max(16,
+                main.getConfig().getInt("matchWorlds.autoGenerate.rareStructureSearchRadiusChunks", 32));
         StructureData mansion = locateRareCandidate(
                 world,
                 spawn,
@@ -279,7 +285,7 @@ public class MatchWorldEvaluator {
     }
 
     private StructureData locateRareCandidate(World world, Location spawn, Structure structure, String key,
-                                              int maxScore, int divisor, int radiusChunks) {
+            int maxScore, int divisor, int radiusChunks) {
         StructureSearchResult result = world.locateNearestStructure(spawn, structure, radiusChunks, false);
         if (result == null) {
             return new StructureData(key, null, Integer.MIN_VALUE, 0);
@@ -334,11 +340,16 @@ public class MatchWorldEvaluator {
 
     private int calculateAnchorWeight(StructureData anchor) {
         int baseWeight = switch (anchor.structureKey()) {
-            case "village" -> Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.village", 100));
-            case "ruined_portal" -> Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.ruinedPortal", 70));
-            case "shipwreck", "beached_shipwreck" -> Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.shipwreck", 45));
-            case "pillager_outpost" -> Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.pillagerOutpost", 18));
-            case "woodland_mansion" -> Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.woodlandMansion", 10));
+            case "village" ->
+                Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.village", 100));
+            case "ruined_portal" ->
+                Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.ruinedPortal", 70));
+            case "shipwreck", "beached_shipwreck" ->
+                Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.shipwreck", 45));
+            case "pillager_outpost" ->
+                Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.pillagerOutpost", 18));
+            case "woodland_mansion" ->
+                Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.woodlandMansion", 10));
             default -> 1;
         };
 
@@ -352,7 +363,8 @@ public class MatchWorldEvaluator {
             return safeLocation == null ? naturalSpawn.toCenterLocation() : safeLocation.toCenterLocation();
         }
 
-        int desiredDistance = Math.max(40, main.getConfig().getInt("matchWorlds.autoGenerate.startDistanceFromAnchor", 100));
+        int desiredDistance = Math.max(40,
+                main.getConfig().getInt("matchWorlds.autoGenerate.startDistanceFromAnchor", 100));
         Location anchorLocation = anchor.location().clone();
         Vector direction = naturalSpawn.toVector().subtract(anchorLocation.toVector()).setY(0);
         if (direction.lengthSquared() < 1.0) {
@@ -366,8 +378,8 @@ public class MatchWorldEvaluator {
 
     private Location findNearestSafeSurface(World world, Location candidate, int spread) {
         int[][] offsets = {
-                {0, 0}, {spread, 0}, {-spread, 0}, {0, spread}, {0, -spread},
-                {spread, spread}, {-spread, spread}, {spread, -spread}, {-spread, -spread}
+                { 0, 0 }, { spread, 0 }, { -spread, 0 }, { 0, spread }, { 0, -spread },
+                { spread, spread }, { -spread, spread }, { spread, -spread }, { -spread, -spread }
         };
         for (int[] offset : offsets) {
             int x = candidate.getBlockX() + offset[0];
@@ -397,13 +409,14 @@ public class MatchWorldEvaluator {
             Location location = anchor.location();
             return sourceName + ". Координаты: X " + location.getBlockX()
                     + ", Y " + location.getBlockY()
-                    + ", Z " + location.getBlockZ() + ".";
+                    + ", Z " + location.getBlockZ()
+                    + ". Направление (привет илья хуй жопа): " + directionFromTo(startLocation, location) + ".";
         }
 
         HintTarget bestHint = null;
         int[][] directions = {
-                {0, -48}, {48, -48}, {48, 0}, {48, 48},
-                {0, 48}, {-48, 48}, {-48, 0}, {-48, -48}
+                { 0, -48 }, { 48, -48 }, { 48, 0 }, { 48, 48 },
+                { 0, 48 }, { -48, 48 }, { -48, 0 }, { -48, -48 }
         };
 
         for (int[] direction : directions) {
@@ -438,6 +451,23 @@ public class MatchWorldEvaluator {
         }
 
         return bestHint.featureText() + ".";
+    }
+
+    private String directionFromTo(Location from, Location to) {
+        double dx = to.getX() - from.getX();
+        double dz = to.getZ() - from.getZ();
+        String northSouth = dz < -12 ? "north" : dz > 12 ? "south" : "";
+        String westEast = dx > 12 ? "east" : dx < -12 ? "west" : "";
+        if (!northSouth.isEmpty() && !westEast.isEmpty()) {
+            return northSouth + "-" + westEast;
+        }
+        if (!northSouth.isEmpty()) {
+            return northSouth;
+        }
+        if (!westEast.isEmpty()) {
+            return westEast;
+        }
+        return "here";
     }
 
     private int scoreHintBiome(String biomeKey) {
@@ -578,7 +608,7 @@ public class MatchWorldEvaluator {
     }
 
     private record StructureData(String structureKey, Location location, int distanceBlocks, int score,
-                                 String smithStructureLabel) {
+            String smithStructureLabel) {
         private StructureData(String structureKey, Location location, int distanceBlocks, int score) {
             this(structureKey, location, distanceBlocks, score, null);
         }
