@@ -103,6 +103,10 @@
 | `matchWorlds.autoGenerate.minScoreToAccept` | int | `90` | Порог качества мира для мгновенного принятия |
 | `matchWorlds.autoGenerate.acceptBestCandidateIfThresholdMissed` | boolean | `true` | Брать лучший мир, если идеальный не найден |
 | `matchWorlds.autoGenerate.fixedSeeds` | list | `[]` | Список ручных сидов вместо случайных |
+| `matchWorlds.autoGenerate.preferVillageWithSmithBuilding` | boolean | `true` | Предпочитать деревни с weaponsmith/toolsmith/armorer-постройкой |
+| `matchWorlds.autoGenerate.requireVillageWithSmithBuilding` | boolean | `true` | Считать деревню подходящей только если в ней найден smith-building |
+| `matchWorlds.autoGenerate.villageSmithSearchRadiusBlocks` | int | `64` | Радиус проверки деревни на smith-building вокруг её центра |
+| `matchWorlds.autoGenerate.rareStructureSearchRadiusChunks` | int | `32` | Радиус поиска редких структур вроде особняка и башни илладжеров |
 | `matchWorlds.autoGenerate.startDistanceFromAnchor` | int | `140` | На каком расстоянии от ключевой структуры ставить старт |
 | `casual` | boolean | `true` | Способности охотников (Shift + ПКМ по компасу) |
 | `warpShadowsCooldown` | int | `300` | Кулдаун Warp Shadows (секунды) |
@@ -122,9 +126,10 @@
 При оценке мира учитывается то, что обычно делает ранний Manhunt бодрее и удобнее на старте:
 
 *   хороший стартовый биом;
-*   близкая деревня;
+*   близкая деревня, причём по умолчанию только деревня с кузнечной smith-постройкой;
 *   разрушенный портал;
 *   корабль;
+*   редкие дополнительные цели: особняк и башня илладжеров;
 *   наличие дерева;
 *   выразительный рельеф.
 
@@ -134,7 +139,8 @@
 
 Дополнительно:
 
-*   стартовая точка выбирается относительно лучшей найденной структуры;
+*   стартовая точка выбирается относительно лучшей найденной структуры по приоритету:
+    smith-деревня -> разрушенный портал -> корабль -> редкие структуры;
 *   спидраннер получает короткую подсказку по направлению к ближайшей полезной структуре.
 
 ### Как работает Warp Shadows?

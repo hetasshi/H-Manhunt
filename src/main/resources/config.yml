@@ -68,6 +68,14 @@ matchWorlds:
     fixedSeeds: []
     # Радиус поиска полезных структур вокруг спавна в чанках
     structureSearchRadiusChunks: 18
+    # Если true, деревни с оружейником/инструментальщиком/бронником получают приоритет
+    preferVillageWithSmithBuilding: true
+    # Если true, деревня без smith-постройки перестаёт считаться якорной структурой
+    requireVillageWithSmithBuilding: true
+    # Радиус локального поиска smith-построек внутри найденной деревни
+    villageSmithSearchRadiusBlocks: 64
+    # Радиус поиска редких структур вроде особняка и башни илладжеров
+    rareStructureSearchRadiusChunks: 32
     # На каком расстоянии от ключевой структуры ставить стартовую точку
     startDistanceFromAnchor: 100
 

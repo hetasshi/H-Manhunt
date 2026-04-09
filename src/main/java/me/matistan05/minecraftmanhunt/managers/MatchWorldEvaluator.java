@@ -2,6 +2,7 @@ package me.matistan05.minecraftmanhunt.managers;
 
 import me.matistan05.minecraftmanhunt.Main;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.structure.Structure;
@@ -29,9 +30,11 @@ public class MatchWorldEvaluator {
 
         StructureData village = locateVillage(world, spawn, summary);
         StructureData ruinedPortal = locateRuinedPortal(world, spawn, summary);
-        score += village.score() + ruinedPortal.score();
+        StructureData shipwreck = locateShipwreck(world, spawn, summary);
+        StructureData rareStructure = locateRareStructure(world, spawn, summary);
+        score += village.score() + ruinedPortal.score() + shipwreck.score() + rareStructure.score();
 
-        StructureData anchor = pickAnchor(village, ruinedPortal);
+        StructureData anchor = pickAnchor(village, ruinedPortal, shipwreck, rareStructure);
         Location startLocation = findStartLocation(world, spawn, anchor);
         String runnerHintMessage = buildRunnerHint(world, startLocation, anchor);
 
@@ -136,7 +139,14 @@ public class MatchWorldEvaluator {
         };
 
         int radiusChunks = Math.max(8, main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
+        boolean preferVillageWithSmithBuilding = main.getConfig().getBoolean(
+                "matchWorlds.autoGenerate.preferVillageWithSmithBuilding", true);
+        boolean requireVillageWithSmithBuilding = main.getConfig().getBoolean(
+                "matchWorlds.autoGenerate.requireVillageWithSmithBuilding", false);
+        int smithSearchRadiusBlocks = Math.max(24, main.getConfig().getInt(
+                "matchWorlds.autoGenerate.villageSmithSearchRadiusBlocks", 64));
         StructureData bestVillage = null;
+        StructureData bestSmithVillage = null;
         for (Structure villageStructure : villages) {
             StructureSearchResult result = world.locateNearestStructure(spawn, villageStructure, radiusChunks, false);
             if (result == null) {
@@ -145,20 +155,48 @@ public class MatchWorldEvaluator {
 
             int distance = (int) spawn.distance(result.getLocation());
             int score = Math.max(0, 70 - (distance / 12));
-            StructureData current = new StructureData("village", result.getLocation(), distance, score);
+            SmithBuildingData smithBuilding = findVillageSmithBuilding(world, result.getLocation(), smithSearchRadiusBlocks);
+            score += smithBuilding.scoreBonus();
+
+            StructureData current = new StructureData(
+                    "village",
+                    result.getLocation(),
+                    distance,
+                    score,
+                    4,
+                    smithBuilding.structureLabel());
             if (bestVillage == null || current.score() > bestVillage.score()) {
                 bestVillage = current;
             }
+            if (smithBuilding.present() && (bestSmithVillage == null || current.score() > bestSmithVillage.score())) {
+                bestSmithVillage = current;
+            }
         }
 
-        if (bestVillage == null) {
+        StructureData selectedVillage = requireVillageWithSmithBuilding && bestSmithVillage != null
+                ? bestSmithVillage
+                : preferVillageWithSmithBuilding && bestSmithVillage != null
+                ? bestSmithVillage
+                : bestVillage;
+
+        if (selectedVillage == null) {
             summary.append(", village=none");
             return new StructureData("village", null, Integer.MIN_VALUE, 0);
         }
 
-        summary.append(", village=").append(bestVillage.distanceBlocks()).append("b(")
-                .append(bestVillage.score()).append(")");
-        return bestVillage;
+        if (selectedVillage.smithStructureLabel() == null && requireVillageWithSmithBuilding) {
+            summary.append(", village=no_smith_building");
+            return new StructureData("village", null, Integer.MIN_VALUE, 0);
+        }
+
+        summary.append(", village=").append(selectedVillage.distanceBlocks()).append("b(")
+                .append(selectedVillage.score()).append(")");
+        if (selectedVillage.smithStructureLabel() != null) {
+            summary.append(", smith=").append(selectedVillage.smithStructureLabel());
+        } else {
+            summary.append(", smith=none");
+        }
+        return selectedVillage;
     }
 
     private StructureData locateRuinedPortal(World world, Location spawn, StringBuilder summary) {
@@ -172,7 +210,84 @@ public class MatchWorldEvaluator {
         int distance = (int) spawn.distance(result.getLocation());
         int score = Math.max(0, 56 - (distance / 12));
         summary.append(", ruined_portal=").append(distance).append("b(").append(score).append(")");
-        return new StructureData("ruined_portal", result.getLocation(), distance, score);
+        return new StructureData("ruined_portal", result.getLocation(), distance, score, 3);
+    }
+
+    private StructureData locateShipwreck(World world, Location spawn, StringBuilder summary) {
+        int radiusChunks = Math.max(8, main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
+        StructureData bestShipwreck = null;
+        Structure[] shipwreckStructures = {
+                Structure.SHIPWRECK,
+                Structure.SHIPWRECK_BEACHED
+        };
+
+        for (Structure shipwreckStructure : shipwreckStructures) {
+            StructureSearchResult result = world.locateNearestStructure(spawn, shipwreckStructure, radiusChunks, false);
+            if (result == null) {
+                continue;
+            }
+
+            int distance = (int) spawn.distance(result.getLocation());
+            int score = Math.max(0, 40 - (distance / 14));
+            String structureKey = shipwreckStructure == Structure.SHIPWRECK_BEACHED
+                    ? "beached_shipwreck"
+                    : "shipwreck";
+            StructureData current = new StructureData(structureKey, result.getLocation(), distance, score, 2);
+            if (bestShipwreck == null || current.score() > bestShipwreck.score()) {
+                bestShipwreck = current;
+            }
+        }
+
+        if (bestShipwreck == null) {
+            summary.append(", shipwreck=none");
+            return new StructureData("shipwreck", null, Integer.MIN_VALUE, 0);
+        }
+
+        summary.append(", shipwreck=").append(bestShipwreck.distanceBlocks()).append("b(")
+                .append(bestShipwreck.score()).append(")");
+        return bestShipwreck;
+    }
+
+    private StructureData locateRareStructure(World world, Location spawn, StringBuilder summary) {
+        int radiusChunks = Math.max(16, main.getConfig().getInt("matchWorlds.autoGenerate.rareStructureSearchRadiusChunks", 32));
+        StructureData mansion = locateRareCandidate(
+                world,
+                spawn,
+                Structure.MANSION,
+                "woodland_mansion",
+                24,
+                28,
+                radiusChunks);
+        StructureData outpost = locateRareCandidate(
+                world,
+                spawn,
+                Structure.PILLAGER_OUTPOST,
+                "pillager_outpost",
+                18,
+                24,
+                radiusChunks);
+
+        StructureData bestRare = pickAnchor(mansion, outpost);
+        if (bestRare == null || bestRare.location() == null) {
+            summary.append(", rare=none");
+            return new StructureData("rare", null, Integer.MIN_VALUE, 0);
+        }
+
+        summary.append(", rare=").append(bestRare.structureKey()).append(":")
+                .append(bestRare.distanceBlocks()).append("b(").append(bestRare.score()).append(")");
+        return bestRare;
+    }
+
+    private StructureData locateRareCandidate(World world, Location spawn, Structure structure, String key,
+                                              int maxScore, int divisor, int radiusChunks) {
+        StructureSearchResult result = world.locateNearestStructure(spawn, structure, radiusChunks, false);
+        if (result == null) {
+            return new StructureData(key, null, Integer.MIN_VALUE, 0);
+        }
+
+        int distance = (int) spawn.distance(result.getLocation());
+        int score = Math.max(0, maxScore - (distance / divisor));
+        return new StructureData(key, result.getLocation(), distance, score, 1);
     }
 
     private StructureData pickAnchor(StructureData... anchors) {
@@ -181,7 +296,9 @@ public class MatchWorldEvaluator {
             if (anchor.location() == null) {
                 continue;
             }
-            if (best == null || anchor.score() > best.score()) {
+            if (best == null
+                    || anchor.priority() > best.priority()
+                    || (anchor.priority() == best.priority() && anchor.score() > best.score())) {
                 best = anchor;
             }
         }
@@ -231,6 +348,9 @@ public class MatchWorldEvaluator {
             String sourceName = switch (anchor.structureKey()) {
                 case "village" -> "деревня";
                 case "ruined_portal" -> "разрушенный портал";
+                case "shipwreck", "beached_shipwreck" -> "корабль";
+                case "woodland_mansion" -> "особняк илладжеров";
+                case "pillager_outpost" -> "башня илладжеров";
                 default -> "полезная точка";
             };
             return "Подсказка: " + sourceName + " " + directionFromTo(startLocation, anchor.location()) + ".";
@@ -353,6 +473,50 @@ public class MatchWorldEvaluator {
         return false;
     }
 
+    private SmithBuildingData findVillageSmithBuilding(World world, Location villageCenter, int radius) {
+        SmithBuildingData bestMatch = SmithBuildingData.none();
+
+        int minChunkX = Math.floorDiv(villageCenter.getBlockX() - radius, 16);
+        int maxChunkX = Math.floorDiv(villageCenter.getBlockX() + radius, 16);
+        int minChunkZ = Math.floorDiv(villageCenter.getBlockZ() - radius, 16);
+        int maxChunkZ = Math.floorDiv(villageCenter.getBlockZ() + radius, 16);
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                if (!world.isChunkLoaded(chunkX, chunkZ)) {
+                    world.getChunkAt(chunkX, chunkZ);
+                }
+            }
+        }
+
+        int centerX = villageCenter.getBlockX();
+        int centerZ = villageCenter.getBlockZ();
+        for (int x = centerX - radius; x <= centerX + radius; x++) {
+            for (int z = centerZ - radius; z <= centerZ + radius; z++) {
+                int highestY = world.getHighestBlockYAt(x, z);
+                int minY = Math.max(world.getMinHeight(), highestY - 14);
+                int maxY = Math.min(world.getMaxHeight() - 1, highestY + 4);
+                for (int y = minY; y <= maxY; y++) {
+                    Material type = world.getBlockAt(x, y, z).getType();
+                    SmithBuildingData currentMatch = mapSmithBuilding(type);
+                    if (currentMatch.present() && currentMatch.scoreBonus() > bestMatch.scoreBonus()) {
+                        bestMatch = currentMatch;
+                    }
+                }
+            }
+        }
+
+        return bestMatch;
+    }
+
+    private SmithBuildingData mapSmithBuilding(Material type) {
+        return switch (type) {
+            case GRINDSTONE -> new SmithBuildingData(true, "weaponsmith", 20);
+            case SMITHING_TABLE -> new SmithBuildingData(true, "toolsmith", 16);
+            case BLAST_FURNACE -> new SmithBuildingData(true, "armorer", 12);
+            default -> SmithBuildingData.none();
+        };
+    }
+
     private String describeFeature(String biomeKey, boolean hasWood, boolean hasWater) {
         if (hasWood && hasWater) {
             return "рядом лес и вода";
@@ -396,6 +560,20 @@ public class MatchWorldEvaluator {
     private record HintTarget(String directionText, String featureText, int score) {
     }
 
-    private record StructureData(String structureKey, Location location, int distanceBlocks, int score) {
+    private record SmithBuildingData(boolean present, String structureLabel, int scoreBonus) {
+        private static SmithBuildingData none() {
+            return new SmithBuildingData(false, null, 0);
+        }
+    }
+
+    private record StructureData(String structureKey, Location location, int distanceBlocks, int score, int priority,
+                                 String smithStructureLabel) {
+        private StructureData(String structureKey, Location location, int distanceBlocks, int score) {
+            this(structureKey, location, distanceBlocks, score, 0, null);
+        }
+
+        private StructureData(String structureKey, Location location, int distanceBlocks, int score, int priority) {
+            this(structureKey, location, distanceBlocks, score, priority, null);
+        }
     }
 }
