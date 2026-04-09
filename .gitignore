@@ -54,3 +54,6 @@ run/
 *.bak
 *.swp
 *~
+
+.codex
+AGENTS.md
