@@ -101,6 +101,7 @@ public class MatchWorldManager {
     }
 
     private PreparedMatchWorld activateCandidate(MatchWorldCandidate candidate) {
+        candidate.world().setSpawnLocation(candidate.startLocation());
         activeSession = new MatchWorldSession(
                 candidate.world().getName(),
                 lifecycleManager.getWorldNamesForBase(candidate.world().getName()),

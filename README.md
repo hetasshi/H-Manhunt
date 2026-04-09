@@ -112,7 +112,7 @@
 | `matchWorlds.autoGenerate.anchorWeights.shipwreck` | int | `45` | Вес корабля при случайном выборе якорной структуры |
 | `matchWorlds.autoGenerate.anchorWeights.pillagerOutpost` | int | `18` | Вес башни илладжеров при случайном выборе якорной структуры |
 | `matchWorlds.autoGenerate.anchorWeights.woodlandMansion` | int | `10` | Вес особняка илладжеров при случайном выборе якорной структуры |
-| `matchWorlds.autoGenerate.startDistanceFromAnchor` | int | `140` | На каком расстоянии от ключевой структуры ставить старт |
+| `matchWorlds.autoGenerate.startDistanceFromAnchor` | int | `100` | На каком расстоянии от ключевой структуры ставить стартовую точку и спавн матча |
 | `casual` | boolean | `true` | Способности охотников (Shift + ПКМ по компасу) |
 | `warpShadowsCooldown` | int | `300` | Кулдаун Warp Shadows (секунды) |
 | `warpShadowsMaxDistance` | int | `200` | Дистанция до цели после варпа |

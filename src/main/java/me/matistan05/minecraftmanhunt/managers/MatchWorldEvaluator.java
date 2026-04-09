@@ -3,10 +3,14 @@ package me.matistan05.minecraftmanhunt.managers;
 import me.matistan05.minecraftmanhunt.Main;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Chest;
 import org.bukkit.generator.structure.Structure;
 import org.bukkit.generator.structure.StructureType;
+import org.bukkit.loot.LootTable;
 import org.bukkit.util.Vector;
 import org.bukkit.util.StructureSearchResult;
 
@@ -553,7 +557,11 @@ public class MatchWorldEvaluator {
                 int maxY = Math.min(world.getMaxHeight() - 1, highestY + 4);
                 for (int y = minY; y <= maxY; y++) {
                     Material type = world.getBlockAt(x, y, z).getType();
-                    SmithBuildingData currentMatch = mapSmithBuilding(type);
+                    if (type != Material.LAVA) {
+                        continue;
+                    }
+
+                    SmithBuildingData currentMatch = findSmithLootChestNearLava(world, x, y, z);
                     if (currentMatch.present() && currentMatch.scoreBonus() > bestMatch.scoreBonus()) {
                         bestMatch = currentMatch;
                     }
@@ -564,13 +572,53 @@ public class MatchWorldEvaluator {
         return bestMatch;
     }
 
-    private SmithBuildingData mapSmithBuilding(Material type) {
-        return switch (type) {
-            case GRINDSTONE -> new SmithBuildingData(true, "weaponsmith", 20);
-            case SMITHING_TABLE -> new SmithBuildingData(true, "toolsmith", 16);
-            case BLAST_FURNACE -> new SmithBuildingData(true, "armorer", 12);
-            default -> SmithBuildingData.none();
-        };
+    private SmithBuildingData findSmithLootChestNearLava(World world, int lavaX, int lavaY, int lavaZ) {
+        int chestRadius = 6;
+        int minX = lavaX - chestRadius;
+        int maxX = lavaX + chestRadius;
+        int minY = Math.max(world.getMinHeight(), lavaY - 4);
+        int maxY = Math.min(world.getMaxHeight() - 1, lavaY + 5);
+        int minZ = lavaZ - chestRadius;
+        int maxZ = lavaZ + chestRadius;
+
+        SmithBuildingData bestMatch = SmithBuildingData.none();
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                for (int y = minY; y <= maxY; y++) {
+                    if (world.getBlockAt(x, y, z).getType() != Material.CHEST) {
+                        continue;
+                    }
+
+                    SmithBuildingData currentMatch = mapSmithLootChest(world.getBlockAt(x, y, z).getState());
+                    if (currentMatch.present() && currentMatch.scoreBonus() > bestMatch.scoreBonus()) {
+                        bestMatch = currentMatch;
+                    }
+                }
+            }
+        }
+
+        return bestMatch;
+    }
+
+    private SmithBuildingData mapSmithLootChest(BlockState state) {
+        if (!(state instanceof Chest chest)) {
+            return SmithBuildingData.none();
+        }
+
+        LootTable lootTable = chest.getLootTable();
+        if (lootTable == null) {
+            return SmithBuildingData.none();
+        }
+
+        NamespacedKey lootTableKey = lootTable.getKey();
+        String fullKey = lootTableKey.getNamespace() + ":" + lootTableKey.getKey();
+        if (fullKey.endsWith("village/village_weaponsmith")) {
+            return new SmithBuildingData(true, "weaponsmith_loot", 28);
+        }
+        if (fullKey.endsWith("village/village_toolsmith")) {
+            return new SmithBuildingData(true, "toolsmith_loot", 18);
+        }
+        return SmithBuildingData.none();
     }
 
     private String describeFeature(String biomeKey, boolean hasWood, boolean hasWater) {

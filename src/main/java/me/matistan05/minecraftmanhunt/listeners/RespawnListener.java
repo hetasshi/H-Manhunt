@@ -37,19 +37,17 @@ public class RespawnListener implements Listener {
     }
 
     private Location resolveMatchRespawnLocation() {
+        if (main.getConfig().getBoolean("matchWorlds.enabled", false)) {
+            for (String worldName : main.getMatchWorldManager().getActiveWorldNames()) {
+                World world = Bukkit.getWorld(worldName);
+                if (world != null && world.getEnvironment() == World.Environment.NORMAL) {
+                    return world.getSpawnLocation();
+                }
+            }
+        }
+
         if (startLocation != null) {
             return startLocation.clone();
-        }
-
-        if (!main.getConfig().getBoolean("matchWorlds.enabled", false)) {
-            return null;
-        }
-
-        for (String worldName : main.getMatchWorldManager().getActiveWorldNames()) {
-            World world = Bukkit.getWorld(worldName);
-            if (world != null && world.getEnvironment() == World.Environment.NORMAL) {
-                return world.getSpawnLocation();
-            }
         }
 
         return null;
