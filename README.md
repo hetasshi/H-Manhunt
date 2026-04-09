@@ -107,6 +107,11 @@
 | `matchWorlds.autoGenerate.requireVillageWithSmithBuilding` | boolean | `true` | Считать деревню подходящей только если в ней найден smith-building |
 | `matchWorlds.autoGenerate.villageSmithSearchRadiusBlocks` | int | `64` | Радиус проверки деревни на smith-building вокруг её центра |
 | `matchWorlds.autoGenerate.rareStructureSearchRadiusChunks` | int | `32` | Радиус поиска редких структур вроде особняка и башни илладжеров |
+| `matchWorlds.autoGenerate.anchorWeights.village` | int | `100` | Вес деревни при случайном выборе якорной структуры |
+| `matchWorlds.autoGenerate.anchorWeights.ruinedPortal` | int | `70` | Вес разрушенного портала при случайном выборе якорной структуры |
+| `matchWorlds.autoGenerate.anchorWeights.shipwreck` | int | `45` | Вес корабля при случайном выборе якорной структуры |
+| `matchWorlds.autoGenerate.anchorWeights.pillagerOutpost` | int | `18` | Вес башни илладжеров при случайном выборе якорной структуры |
+| `matchWorlds.autoGenerate.anchorWeights.woodlandMansion` | int | `10` | Вес особняка илладжеров при случайном выборе якорной структуры |
 | `matchWorlds.autoGenerate.startDistanceFromAnchor` | int | `140` | На каком расстоянии от ключевой структуры ставить старт |
 | `casual` | boolean | `true` | Способности охотников (Shift + ПКМ по компасу) |
 | `warpShadowsCooldown` | int | `300` | Кулдаун Warp Shadows (секунды) |
@@ -139,8 +144,8 @@
 
 Дополнительно:
 
-*   стартовая точка выбирается относительно лучшей найденной структуры по приоритету:
-    smith-деревня -> разрушенный портал -> корабль -> редкие структуры;
+*   стартовая точка выбирается случайно по весам среди найденных структур;
+*   по умолчанию деревня имеет самый высокий шанс, но портал, корабль и редкие структуры тоже могут стать якорем;
 *   спидраннер получает короткую подсказку по направлению к ближайшей полезной структуре.
 
 ### Как работает Warp Shadows?

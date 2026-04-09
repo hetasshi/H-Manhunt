@@ -11,6 +11,7 @@ import org.bukkit.util.Vector;
 import org.bukkit.util.StructureSearchResult;
 
 import java.util.Locale;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class MatchWorldEvaluator {
     private final Main main;
@@ -34,7 +35,7 @@ public class MatchWorldEvaluator {
         StructureData rareStructure = locateRareStructure(world, spawn, summary);
         score += village.score() + ruinedPortal.score() + shipwreck.score() + rareStructure.score();
 
-        StructureData anchor = pickAnchor(village, ruinedPortal, shipwreck, rareStructure);
+        StructureData anchor = pickRandomAnchor(village, ruinedPortal, shipwreck, rareStructure);
         Location startLocation = findStartLocation(world, spawn, anchor);
         String runnerHintMessage = buildRunnerHint(world, startLocation, anchor);
 
@@ -163,7 +164,6 @@ public class MatchWorldEvaluator {
                     result.getLocation(),
                     distance,
                     score,
-                    4,
                     smithBuilding.structureLabel());
             if (bestVillage == null || current.score() > bestVillage.score()) {
                 bestVillage = current;
@@ -210,7 +210,7 @@ public class MatchWorldEvaluator {
         int distance = (int) spawn.distance(result.getLocation());
         int score = Math.max(0, 56 - (distance / 12));
         summary.append(", ruined_portal=").append(distance).append("b(").append(score).append(")");
-        return new StructureData("ruined_portal", result.getLocation(), distance, score, 3);
+        return new StructureData("ruined_portal", result.getLocation(), distance, score);
     }
 
     private StructureData locateShipwreck(World world, Location spawn, StringBuilder summary) {
@@ -232,7 +232,7 @@ public class MatchWorldEvaluator {
             String structureKey = shipwreckStructure == Structure.SHIPWRECK_BEACHED
                     ? "beached_shipwreck"
                     : "shipwreck";
-            StructureData current = new StructureData(structureKey, result.getLocation(), distance, score, 2);
+            StructureData current = new StructureData(structureKey, result.getLocation(), distance, score);
             if (bestShipwreck == null || current.score() > bestShipwreck.score()) {
                 bestShipwreck = current;
             }
@@ -267,7 +267,7 @@ public class MatchWorldEvaluator {
                 24,
                 radiusChunks);
 
-        StructureData bestRare = pickAnchor(mansion, outpost);
+        StructureData bestRare = pickBestScoredStructure(mansion, outpost);
         if (bestRare == null || bestRare.location() == null) {
             summary.append(", rare=none");
             return new StructureData("rare", null, Integer.MIN_VALUE, 0);
@@ -287,22 +287,63 @@ public class MatchWorldEvaluator {
 
         int distance = (int) spawn.distance(result.getLocation());
         int score = Math.max(0, maxScore - (distance / divisor));
-        return new StructureData(key, result.getLocation(), distance, score, 1);
+        return new StructureData(key, result.getLocation(), distance, score);
     }
 
-    private StructureData pickAnchor(StructureData... anchors) {
+    private StructureData pickBestScoredStructure(StructureData... anchors) {
         StructureData best = null;
         for (StructureData anchor : anchors) {
             if (anchor.location() == null) {
                 continue;
             }
-            if (best == null
-                    || anchor.priority() > best.priority()
-                    || (anchor.priority() == best.priority() && anchor.score() > best.score())) {
+            if (best == null || anchor.score() > best.score()) {
                 best = anchor;
             }
         }
         return best;
+    }
+
+    private StructureData pickRandomAnchor(StructureData... anchors) {
+        int totalWeight = 0;
+        for (StructureData anchor : anchors) {
+            if (anchor.location() == null) {
+                continue;
+            }
+            totalWeight += calculateAnchorWeight(anchor);
+        }
+
+        if (totalWeight <= 0) {
+            return pickBestScoredStructure(anchors);
+        }
+
+        int roll = ThreadLocalRandom.current().nextInt(totalWeight);
+        int current = 0;
+        for (StructureData anchor : anchors) {
+            if (anchor.location() == null) {
+                continue;
+            }
+
+            current += calculateAnchorWeight(anchor);
+            if (roll < current) {
+                return anchor;
+            }
+        }
+
+        return pickBestScoredStructure(anchors);
+    }
+
+    private int calculateAnchorWeight(StructureData anchor) {
+        int baseWeight = switch (anchor.structureKey()) {
+            case "village" -> Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.village", 100));
+            case "ruined_portal" -> Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.ruinedPortal", 70));
+            case "shipwreck", "beached_shipwreck" -> Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.shipwreck", 45));
+            case "pillager_outpost" -> Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.pillagerOutpost", 18));
+            case "woodland_mansion" -> Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.woodlandMansion", 10));
+            default -> 1;
+        };
+
+        int scoreContribution = Math.max(0, anchor.score());
+        return Math.max(1, baseWeight + scoreContribution);
     }
 
     private Location findStartLocation(World world, Location naturalSpawn, StructureData anchor) {
@@ -346,14 +387,17 @@ public class MatchWorldEvaluator {
     private String buildRunnerHint(World world, Location startLocation, StructureData anchor) {
         if (anchor != null && anchor.location() != null) {
             String sourceName = switch (anchor.structureKey()) {
-                case "village" -> "деревня";
-                case "ruined_portal" -> "разрушенный портал";
-                case "shipwreck", "beached_shipwreck" -> "корабль";
-                case "woodland_mansion" -> "особняк илладжеров";
-                case "pillager_outpost" -> "башня илладжеров";
-                default -> "полезная точка";
+                case "village" -> "Где-то рядом есть деревня с кузницей";
+                case "ruined_portal" -> "Где-то рядом есть разрушенный портал";
+                case "shipwreck", "beached_shipwreck" -> "Где-то рядом есть корабль";
+                case "woodland_mansion" -> "Где-то рядом есть особняк илладжеров";
+                case "pillager_outpost" -> "Где-то рядом есть башня илладжеров";
+                default -> "Где-то рядом есть полезное место";
             };
-            return "Подсказка: " + sourceName + " " + directionFromTo(startLocation, anchor.location()) + ".";
+            Location location = anchor.location();
+            return sourceName + ". Координаты: X " + location.getBlockX()
+                    + ", Y " + location.getBlockY()
+                    + ", Z " + location.getBlockZ() + ".";
         }
 
         HintTarget bestHint = null;
@@ -382,36 +426,18 @@ public class MatchWorldEvaluator {
                 score += 4;
             }
 
-            String directionText = directionFromOffset(direction[0], direction[1]);
             String featureText = describeFeature(biomeKey, hasWood, hasWater);
-            HintTarget current = new HintTarget(directionText, featureText, score);
+            HintTarget current = new HintTarget(featureText, score);
             if (bestHint == null || current.score() > bestHint.score()) {
                 bestHint = current;
             }
         }
 
         if (bestHint == null) {
-            return "Подсказка: осмотрись у спавна и держись суши с деревьями.";
+            return "Осмотрись у спавна и держись более безопасной суши.";
         }
 
-        return "Подсказка: " + bestHint.featureText() + " " + bestHint.directionText() + ".";
-    }
-
-    private String directionFromTo(Location from, Location to) {
-        double dx = to.getX() - from.getX();
-        double dz = to.getZ() - from.getZ();
-        String northSouth = dz < -12 ? "к северу" : dz > 12 ? "к югу" : "";
-        String westEast = dx > 12 ? "к востоку" : dx < -12 ? "к западу" : "";
-        if (!northSouth.isEmpty() && !westEast.isEmpty()) {
-            return northSouth + "-" + westEast.replace("к ", "");
-        }
-        if (!northSouth.isEmpty()) {
-            return northSouth;
-        }
-        if (!westEast.isEmpty()) {
-            return westEast;
-        }
-        return "совсем рядом";
+        return bestHint.featureText() + ".";
     }
 
     private int scoreHintBiome(String biomeKey) {
@@ -519,45 +545,30 @@ public class MatchWorldEvaluator {
 
     private String describeFeature(String biomeKey, boolean hasWood, boolean hasWater) {
         if (hasWood && hasWater) {
-            return "рядом лес и вода";
+            return "Похоже, рядом есть деревья и вода";
         }
         if (hasWood) {
-            return "рядом деревья и удобная суша";
+            return "Похоже, рядом есть деревья и открытая суша";
         }
         if (biomeKey.contains("plains")) {
-            return "там открытая равнина";
+            return "Похоже, рядом открытая равнина";
         }
         if (biomeKey.contains("forest")) {
-            return "там лес";
+            return "Похоже, рядом лес";
         }
         if (biomeKey.contains("savanna")) {
-            return "там саванна";
+            return "Похоже, рядом саванна";
         }
         if (biomeKey.contains("river") || hasWater) {
-            return "рядом вода";
+            return "Похоже, рядом вода";
         }
         if (biomeKey.contains("desert")) {
-            return "там пустыня";
+            return "Похоже, рядом пустыня";
         }
-        return "там более удобный маршрут";
+        return "Похоже, рядом более удобный маршрут";
     }
 
-    private String directionFromOffset(int dx, int dz) {
-        String northSouth = dz < 0 ? "к северу" : dz > 0 ? "к югу" : "";
-        String westEast = dx > 0 ? "востоку" : dx < 0 ? "западу" : "";
-        if (!northSouth.isEmpty() && !westEast.isEmpty()) {
-            return northSouth + "-" + westEast;
-        }
-        if (!northSouth.isEmpty()) {
-            return northSouth;
-        }
-        if (!westEast.isEmpty()) {
-            return "к " + westEast;
-        }
-        return "совсем рядом";
-    }
-
-    private record HintTarget(String directionText, String featureText, int score) {
+    private record HintTarget(String featureText, int score) {
     }
 
     private record SmithBuildingData(boolean present, String structureLabel, int scoreBonus) {
@@ -566,14 +577,10 @@ public class MatchWorldEvaluator {
         }
     }
 
-    private record StructureData(String structureKey, Location location, int distanceBlocks, int score, int priority,
+    private record StructureData(String structureKey, Location location, int distanceBlocks, int score,
                                  String smithStructureLabel) {
         private StructureData(String structureKey, Location location, int distanceBlocks, int score) {
-            this(structureKey, location, distanceBlocks, score, 0, null);
-        }
-
-        private StructureData(String structureKey, Location location, int distanceBlocks, int score, int priority) {
-            this(structureKey, location, distanceBlocks, score, priority, null);
+            this(structureKey, location, distanceBlocks, score, null);
         }
     }
 }

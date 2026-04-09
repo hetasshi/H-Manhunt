@@ -76,6 +76,13 @@ matchWorlds:
     villageSmithSearchRadiusBlocks: 64
     # Радиус поиска редких структур вроде особняка и башни илладжеров
     rareStructureSearchRadiusChunks: 32
+    # Веса для случайного выбора якорной структуры после оценки мира
+    anchorWeights:
+      village: 100
+      ruinedPortal: 70
+      shipwreck: 45
+      pillagerOutpost: 18
+      woodlandMansion: 10
     # На каком расстоянии от ключевой структуры ставить стартовую точку
     startDistanceFromAnchor: 100
 

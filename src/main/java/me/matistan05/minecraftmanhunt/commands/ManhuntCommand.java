@@ -762,6 +762,7 @@ public class ManhuntCommand implements CommandExecutor {
             String runnerHintMessage = main.getMatchWorldManager().getRunnerHintMessage();
             if (runnerHintMessage != null && !inGame) {
                 player.sendMessage(mm.deserialize("<gradient:#55ffaa:#aaffcc>" + runnerHintMessage + "</gradient>"));
+                player.playSound(player.getLocation(), Sound.ITEM_GOAT_HORN_SOUND_5, 0.45f, 1.0f);
             }
             if (player.getWorld().getEnvironment().equals(World.Environment.NORMAL)) {
                 speedrunnerObject.setLocWorld(player.getLocation());
