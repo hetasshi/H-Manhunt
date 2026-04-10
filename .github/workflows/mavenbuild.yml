@@ -1,0 +1,119 @@
+name: Maven Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Какую часть версии поднять перед сборкой"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Забрать код
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Проверить, что запуск идёт из main
+        run: |
+          if [[ "${GITHUB_REF_NAME}" != "main" ]]; then
+            echo "Этот workflow можно запускать только для ветки main. Сейчас: ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+      - name: Поставить Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Прочитать текущую версию из pom.xml
+        id: current_version
+        run: |
+          VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Посчитать следующую версию
+        id: next_version
+        env:
+          CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
+          BUMP_TYPE: ${{ inputs.bump }}
+        run: |
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          if [[ -z "$MAJOR" || -z "$MINOR" || -z "$PATCH" ]]; then
+            echo "Unsupported version format: $CURRENT_VERSION"
+            exit 1
+          fi
+
+          case "$BUMP_TYPE" in
+            major)
+              NEXT_VERSION="$((MAJOR + 1)).0.0"
+              ;;
+            minor)
+              NEXT_VERSION="${MAJOR}.$((MINOR + 1)).0"
+              ;;
+            patch)
+              NEXT_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+              ;;
+            *)
+              echo "Unknown bump type: $BUMP_TYPE"
+              exit 1
+              ;;
+          esac
+
+          echo "value=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Обновить версию в pom.xml
+        run: mvn -B versions:set -DnewVersion=${{ steps.next_version.outputs.value }} -DgenerateBackupPoms=false
+
+      - name: Собрать плагин
+        run: mvn -B package --file pom.xml
+
+      - name: Закоммитить новую версию
+        env:
+          NEXT_VERSION: ${{ steps.next_version.outputs.value }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          git add pom.xml
+          git commit -m "build: bump version to ${NEXT_VERSION}"
+          git push origin HEAD:main
+
+      - name: Загрузить jar в artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: H-Manhunt-${{ steps.next_version.outputs.value }}
+          path: target/H-Manhunt-${{ steps.next_version.outputs.value }}.jar
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Короткая сводка
+        env:
+          CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
+          NEXT_VERSION: ${{ steps.next_version.outputs.value }}
+          BUMP_TYPE: ${{ inputs.bump }}
+        run: |
+          {
+            echo "## Build completed"
+            echo ""
+            echo "- Previous version: \`${CURRENT_VERSION}\`"
+            echo "- Bump type: \`${BUMP_TYPE}\`"
+            echo "- New version: \`${NEXT_VERSION}\`"
+            echo "- Artifact: \`H-Manhunt-${NEXT_VERSION}.jar\`"
+          } >> "$GITHUB_STEP_SUMMARY"
