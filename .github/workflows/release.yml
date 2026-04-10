@@ -1,0 +1,130 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Забрать код
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Проверить, что запуск идёт из main
+        run: |
+          if [[ "${GITHUB_REF_NAME}" != "main" ]]; then
+            echo "Этот workflow можно запускать только для ветки main. Сейчас: ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+      - name: Поставить Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Прочитать версию из pom.xml
+        id: project_version
+        run: |
+          VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Проверить, что версия нормальная
+        env:
+          VERSION: ${{ steps.project_version.outputs.value }}
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Поддерживается только версия в формате X.Y.Z. Сейчас: $VERSION"
+            exit 1
+          fi
+
+      - name: Подготовить переменные релиза
+        id: release_meta
+        env:
+          VERSION: ${{ steps.project_version.outputs.value }}
+        run: |
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "jar=H-Manhunt-${VERSION}.jar" >> "$GITHUB_OUTPUT"
+          echo "title=H-Manhunt ${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Проверить, что такого тега ещё нет
+        env:
+          TAG_NAME: ${{ steps.release_meta.outputs.tag }}
+        run: |
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Тег $TAG_NAME уже существует."
+            exit 1
+          fi
+
+          if git ls-remote --tags origin "refs/tags/${TAG_NAME}" | grep -q .; then
+            echo "Тег $TAG_NAME уже есть в origin."
+            exit 1
+          fi
+
+      - name: Проверить, что такого релиза ещё нет
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.release_meta.outputs.tag }}
+        run: |
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Релиз $TAG_NAME уже существует."
+            exit 1
+          fi
+
+      - name: Собрать плагин
+        run: mvn -B package --file pom.xml
+
+      - name: Проверить, что jar реально собрался
+        env:
+          JAR_NAME: ${{ steps.release_meta.outputs.jar }}
+        run: |
+          if [[ ! -f "target/${JAR_NAME}" ]]; then
+            echo "Не найден файл target/${JAR_NAME}"
+            exit 1
+          fi
+
+      - name: Поставить тег и отправить его в origin
+        env:
+          TAG_NAME: ${{ steps.release_meta.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+
+      - name: Создать GitHub Release и приложить jar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.release_meta.outputs.tag }}
+          RELEASE_TITLE: ${{ steps.release_meta.outputs.title }}
+          JAR_NAME: ${{ steps.release_meta.outputs.jar }}
+        run: |
+          gh release create "$TAG_NAME" "target/${JAR_NAME}" \
+            --title "$RELEASE_TITLE" \
+            --generate-notes
+
+      - name: Короткая сводка
+        env:
+          VERSION: ${{ steps.project_version.outputs.value }}
+          TAG_NAME: ${{ steps.release_meta.outputs.tag }}
+          JAR_NAME: ${{ steps.release_meta.outputs.jar }}
+        run: |
+          {
+            echo "## Релиз готов"
+            echo ""
+            echo "- Версия: \`${VERSION}\`"
+            echo "- Тег: \`${TAG_NAME}\`"
+            echo "- Файл: \`${JAR_NAME}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
