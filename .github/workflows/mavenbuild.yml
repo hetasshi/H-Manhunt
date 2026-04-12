@@ -3,6 +3,10 @@ name: Maven Build
 on:
   workflow_dispatch:
     inputs:
+      version:
+        description: "Версия, которую установить в pom.xml и использовать для сборки/релиза (например, 2.3.5)"
+        required: true
+        type: string
       mode:
         description: "Что сделать: только сборку или полноценный релиз"
         required: true
@@ -11,27 +15,8 @@ on:
         options:
           - build
           - release
-      bump:
-        description: "Какую часть версии поднять перед сборкой"
-        required: true
-        default: "patch"
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
-      manual_version:
-        description: "Использовать вручную указанную версию вместо автоматического bump"
-        required: true
-        default: false
-        type: boolean
-      manual_version_value:
-        description: "Версия, которую использовать при включенном manual_version"
-        required: false
-        default: ""
-        type: string
       manual_release_body:
-        description: "Необязательный текст релиза для режима release; заменяет авто-сгенерированные notes"
+        description: "Необязательный текст релиза (только для режима release); заменяет авто-сгенерированные notes"
         required: false
         default: ""
         type: string
@@ -74,56 +59,11 @@ jobs:
           VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Определить итоговую версию
-        id: target_version
-        env:
-          CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
-          BUMP_TYPE: ${{ inputs.bump }}
-          MANUAL_VERSION: ${{ inputs.manual_version }}
-          MANUAL_VERSION_VALUE: ${{ inputs.manual_version_value }}
-        run: |
-          if [[ "$MANUAL_VERSION" == "true" ]]; then
-            if [[ -z "$MANUAL_VERSION_VALUE" ]]; then
-              echo "manual_version включен, но manual_version_value пустой."
-              exit 1
-            fi
-
-            echo "value=$MANUAL_VERSION_VALUE" >> "$GITHUB_OUTPUT"
-            echo "source=manual" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-
-          if [[ -z "$MAJOR" || -z "$MINOR" || -z "$PATCH" ]]; then
-            echo "Неподдерживаемый формат версии: $CURRENT_VERSION"
-            exit 1
-          fi
-
-          case "$BUMP_TYPE" in
-            major)
-              NEXT_VERSION="$((MAJOR + 1)).0.0"
-              ;;
-            minor)
-              NEXT_VERSION="${MAJOR}.$((MINOR + 1)).0"
-              ;;
-            patch)
-              NEXT_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
-              ;;
-            *)
-              echo "Неизвестный bump type: $BUMP_TYPE"
-              exit 1
-              ;;
-          esac
-
-          echo "value=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
-          echo "source=auto-bump" >> "$GITHUB_OUTPUT"
-
       - name: Проверить, нужно ли менять pom.xml
         id: version_change
         env:
           CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
-          TARGET_VERSION: ${{ steps.target_version.outputs.value }}
+          TARGET_VERSION: ${{ inputs.version }}
         run: |
           if [[ "$CURRENT_VERSION" == "$TARGET_VERSION" ]]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -133,13 +73,13 @@ jobs:
 
       - name: Обновить версию в pom.xml
         if: ${{ steps.version_change.outputs.changed == 'true' }}
-        run: mvn -B versions:set -DnewVersion=${{ steps.target_version.outputs.value }} -DgenerateBackupPoms=false
+        run: mvn -B versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupPoms=false
 
       - name: Подготовить метаданные артефакта
         id: artifact_meta
         env:
           MODE: ${{ inputs.mode }}
-          VERSION: ${{ steps.target_version.outputs.value }}
+          VERSION: ${{ inputs.version }}
           MANUAL_RELEASE_BODY: ${{ inputs.manual_release_body }}
         run: |
           TITLE="H-Manhunt ${VERSION}"
@@ -175,7 +115,7 @@ jobs:
       - name: Закоммитить новую версию
         if: ${{ steps.version_change.outputs.changed == 'true' }}
         env:
-          NEXT_VERSION: ${{ steps.target_version.outputs.value }}
+          NEXT_VERSION: ${{ inputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -263,7 +203,6 @@ jobs:
           MODE: ${{ inputs.mode }}
           CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
           NEXT_VERSION: ${{ steps.artifact_meta.outputs.version }}
-          BUMP_TYPE: ${{ inputs.bump }}
           VERSION_CHANGED: ${{ steps.version_change.outputs.changed }}
           TAG_NAME: ${{ steps.artifact_meta.outputs.tag }}
           HAS_CUSTOM_BODY: ${{ steps.artifact_meta.outputs.has_custom_body }}
@@ -278,7 +217,6 @@ jobs:
             echo ""
             echo "- Mode: \`${MODE}\`"
             echo "- Previous version: \`${CURRENT_VERSION}\`"
-            echo "- Bump type: \`${BUMP_TYPE}\`"
             echo "- Version changed: \`${VERSION_CHANGED}\`"
             echo "- New version: \`${NEXT_VERSION}\`"
             echo "- Artifact: \`${JAR_NAME}\`"
