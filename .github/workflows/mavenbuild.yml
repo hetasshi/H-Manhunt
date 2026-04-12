@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "Choose whether to run a build only or publish a full release"
+        description: "Что сделать: только сборку или полноценный релиз"
         required: true
         default: "build"
         type: choice
@@ -12,7 +12,7 @@ on:
           - build
           - release
       bump:
-        description: "Select which part of the version to increment before packaging"
+        description: "Какую часть версии поднять перед сборкой"
         required: true
         default: "patch"
         type: choice
@@ -21,22 +21,22 @@ on:
           - minor
           - major
       manual_version:
-        description: "Use a manually provided version instead of the automatic bump"
+        description: "Использовать вручную указанную версию вместо автоматического bump"
         required: true
         default: false
         type: boolean
       manual_version_value:
-        description: "Manual version to use when manual_version is enabled"
+        description: "Версия, которую использовать при включенном manual_version"
         required: false
         default: ""
         type: string
       manual_release_title:
-        description: "Optional custom release title for release mode"
+        description: "Необязательный заголовок релиза для режима release"
         required: false
         default: ""
         type: string
       manual_release_body:
-        description: "Optional custom release body for release mode; replaces auto-generated notes"
+        description: "Необязательный текст релиза для режима release; заменяет авто-сгенерированные notes"
         required: false
         default: ""
         type: string
@@ -53,33 +53,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Забрать код
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: main
 
-      - name: Ensure the workflow runs from main
+      - name: Проверить, что запуск идёт из main
         run: |
           if [[ "${GITHUB_REF_NAME}" != "main" ]]; then
             echo "This workflow can only run from the main branch. Current branch: ${GITHUB_REF_NAME}"
             exit 1
           fi
 
-      - name: Set up Java 21
+      - name: Поставить Java 21
         uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
 
-      - name: Read current version from pom.xml
+      - name: Прочитать текущую версию из pom.xml
         id: current_version
         run: |
           VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Resolve target version
+      - name: Определить итоговую версию
         id: target_version
         env:
           CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
@@ -124,10 +124,10 @@ jobs:
           echo "value=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
           echo "source=auto-bump" >> "$GITHUB_OUTPUT"
 
-      - name: Update version in pom.xml
+      - name: Обновить версию в pom.xml
         run: mvn -B versions:set -DnewVersion=${{ steps.target_version.outputs.value }} -DgenerateBackupPoms=false
 
-      - name: Prepare artifact metadata
+      - name: Подготовить метаданные артефакта
         id: artifact_meta
         env:
           MODE: ${{ inputs.mode }}
@@ -156,10 +156,10 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Build plugin
+      - name: Собрать плагин
         run: mvn -B package --file pom.xml
 
-      - name: Verify that the jar was produced
+      - name: Проверить, что jar реально собрался
         env:
           JAR_NAME: ${{ steps.artifact_meta.outputs.jar }}
         run: |
@@ -168,7 +168,7 @@ jobs:
             exit 1
           fi
 
-      - name: Commit bumped version
+      - name: Закоммитить новую версию
         env:
           NEXT_VERSION: ${{ steps.target_version.outputs.value }}
         run: |
@@ -179,7 +179,7 @@ jobs:
           git commit -m "build: bump version to ${NEXT_VERSION}"
           git push origin HEAD:main
 
-      - name: Upload jar artifact
+      - name: Загрузить jar в artifacts
         uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.artifact_meta.outputs.jar }}
@@ -187,7 +187,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Validate release version format
+      - name: Проверить, что версия подходит для релиза
         if: ${{ inputs.mode == 'release' }}
         env:
           VERSION: ${{ steps.artifact_meta.outputs.version }}
@@ -197,7 +197,7 @@ jobs:
             exit 1
           fi
 
-      - name: Ensure the release tag does not already exist
+      - name: Проверить, что такого тега ещё нет
         if: ${{ inputs.mode == 'release' }}
         env:
           TAG_NAME: ${{ steps.artifact_meta.outputs.tag }}
@@ -212,7 +212,7 @@ jobs:
             exit 1
           fi
 
-      - name: Ensure the GitHub release does not already exist
+      - name: Проверить, что такого релиза ещё нет
         if: ${{ inputs.mode == 'release' }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -223,7 +223,7 @@ jobs:
             exit 1
           fi
 
-      - name: Create and push release tag
+      - name: Поставить тег и отправить его в origin
         if: ${{ inputs.mode == 'release' }}
         env:
           TAG_NAME: ${{ steps.artifact_meta.outputs.tag }}
@@ -233,7 +233,7 @@ jobs:
           git tag "$TAG_NAME"
           git push origin "$TAG_NAME"
 
-      - name: Create GitHub release and attach jar
+      - name: Создать GitHub Release и приложить jar
         if: ${{ inputs.mode == 'release' && steps.artifact_meta.outputs.has_custom_body != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
@@ -243,7 +243,7 @@ jobs:
           files: target/${{ steps.artifact_meta.outputs.jar }}
           generate_release_notes: true
 
-      - name: Create GitHub release with custom body and attach jar
+      - name: Создать GitHub Release с кастомным body и приложить jar
         if: ${{ inputs.mode == 'release' && steps.artifact_meta.outputs.has_custom_body == 'true' }}
         uses: softprops/action-gh-release@v2
         with:
@@ -253,7 +253,7 @@ jobs:
           body: ${{ steps.artifact_meta.outputs.body }}
           files: target/${{ steps.artifact_meta.outputs.jar }}
 
-      - name: Write workflow summary
+      - name: Короткая сводка
         env:
           MODE: ${{ inputs.mode }}
           CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
