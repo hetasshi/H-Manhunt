@@ -3,8 +3,16 @@ name: Maven Build
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: "Choose whether to run a build only or publish a full release"
+        required: true
+        default: "build"
+        type: choice
+        options:
+          - build
+          - release
       bump:
-        description: "Какую часть версии поднять перед сборкой"
+        description: "Select which part of the version to increment before packaging"
         required: true
         default: "patch"
         type: choice
@@ -16,38 +24,42 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: maven-main-${{ inputs.mode }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Забрать код
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: main
 
-      - name: Проверить, что запуск идёт из main
+      - name: Ensure the workflow runs from main
         run: |
           if [[ "${GITHUB_REF_NAME}" != "main" ]]; then
-            echo "Этот workflow можно запускать только для ветки main. Сейчас: ${GITHUB_REF_NAME}"
+            echo "This workflow can only run from the main branch. Current branch: ${GITHUB_REF_NAME}"
             exit 1
           fi
 
-      - name: Поставить Java 21
-        uses: actions/setup-java@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
 
-      - name: Прочитать текущую версию из pom.xml
+      - name: Read current version from pom.xml
         id: current_version
         run: |
           VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Посчитать следующую версию
+      - name: Calculate next version
         id: next_version
         env:
           CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
@@ -78,13 +90,32 @@ jobs:
 
           echo "value=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Обновить версию в pom.xml
+      - name: Update version in pom.xml
         run: mvn -B versions:set -DnewVersion=${{ steps.next_version.outputs.value }} -DgenerateBackupPoms=false
 
-      - name: Собрать плагин
+      - name: Prepare artifact metadata
+        id: artifact_meta
+        env:
+          VERSION: ${{ steps.next_version.outputs.value }}
+        run: |
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "jar=H-Manhunt-${VERSION}.jar" >> "$GITHUB_OUTPUT"
+          echo "title=H-Manhunt ${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Build plugin
         run: mvn -B package --file pom.xml
 
-      - name: Закоммитить новую версию
+      - name: Verify that the jar was produced
+        env:
+          JAR_NAME: ${{ steps.artifact_meta.outputs.jar }}
+        run: |
+          if [[ ! -f "target/${JAR_NAME}" ]]; then
+            echo "Expected file target/${JAR_NAME} was not found"
+            exit 1
+          fi
+
+      - name: Commit bumped version
         env:
           NEXT_VERSION: ${{ steps.next_version.outputs.value }}
         run: |
@@ -95,25 +126,92 @@ jobs:
           git commit -m "build: bump version to ${NEXT_VERSION}"
           git push origin HEAD:main
 
-      - name: Загрузить jar в artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload jar artifact
+        uses: actions/upload-artifact@v6
         with:
-          name: H-Manhunt-${{ steps.next_version.outputs.value }}
-          path: target/H-Manhunt-${{ steps.next_version.outputs.value }}.jar
+          name: ${{ steps.artifact_meta.outputs.jar }}
+          path: target/${{ steps.artifact_meta.outputs.jar }}
           if-no-files-found: error
           retention-days: 30
 
-      - name: Короткая сводка
+      - name: Validate release version format
+        if: ${{ inputs.mode == 'release' }}
         env:
+          VERSION: ${{ steps.artifact_meta.outputs.version }}
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Only X.Y.Z version format is supported. Current value: $VERSION"
+            exit 1
+          fi
+
+      - name: Ensure the release tag does not already exist
+        if: ${{ inputs.mode == 'release' }}
+        env:
+          TAG_NAME: ${{ steps.artifact_meta.outputs.tag }}
+        run: |
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Tag $TAG_NAME already exists."
+            exit 1
+          fi
+
+          if git ls-remote --tags origin "refs/tags/${TAG_NAME}" | grep -q .; then
+            echo "Tag $TAG_NAME already exists in origin."
+            exit 1
+          fi
+
+      - name: Ensure the GitHub release does not already exist
+        if: ${{ inputs.mode == 'release' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.artifact_meta.outputs.tag }}
+        run: |
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME already exists."
+            exit 1
+          fi
+
+      - name: Create and push release tag
+        if: ${{ inputs.mode == 'release' }}
+        env:
+          TAG_NAME: ${{ steps.artifact_meta.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+
+      - name: Create GitHub release and attach jar
+        if: ${{ inputs.mode == 'release' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.artifact_meta.outputs.tag }}
+          target_commitish: main
+          name: ${{ steps.artifact_meta.outputs.title }}
+          files: target/${{ steps.artifact_meta.outputs.jar }}
+          generate_release_notes: true
+
+      - name: Write workflow summary
+        env:
+          MODE: ${{ inputs.mode }}
           CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
-          NEXT_VERSION: ${{ steps.next_version.outputs.value }}
+          NEXT_VERSION: ${{ steps.artifact_meta.outputs.version }}
           BUMP_TYPE: ${{ inputs.bump }}
+          TAG_NAME: ${{ steps.artifact_meta.outputs.tag }}
+          JAR_NAME: ${{ steps.artifact_meta.outputs.jar }}
         run: |
           {
-            echo "## Build completed"
+            if [[ "$MODE" == "release" ]]; then
+              echo "## Release completed"
+            else
+              echo "## Build completed"
+            fi
             echo ""
+            echo "- Mode: \`${MODE}\`"
             echo "- Previous version: \`${CURRENT_VERSION}\`"
             echo "- Bump type: \`${BUMP_TYPE}\`"
             echo "- New version: \`${NEXT_VERSION}\`"
-            echo "- Artifact: \`H-Manhunt-${NEXT_VERSION}.jar\`"
+            echo "- Artifact: \`${JAR_NAME}\`"
+            if [[ "$MODE" == "release" ]]; then
+              echo "- Tag: \`${TAG_NAME}\`"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
