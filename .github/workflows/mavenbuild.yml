@@ -124,7 +124,22 @@ jobs:
           echo "value=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
           echo "source=auto-bump" >> "$GITHUB_OUTPUT"
 
+      - name: Проверить, нужно ли менять pom.xml
+        id: version_change
+        env:
+          CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
+          TARGET_VERSION: ${{ steps.target_version.outputs.value }}
+        run: |
+          if [[ "$CURRENT_VERSION" == "$TARGET_VERSION" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "reason=same-version" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "reason=version-update" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Обновить версию в pom.xml
+        if: ${{ steps.version_change.outputs.changed == 'true' }}
         run: mvn -B versions:set -DnewVersion=${{ steps.target_version.outputs.value }} -DgenerateBackupPoms=false
 
       - name: Подготовить метаданные артефакта
@@ -169,6 +184,7 @@ jobs:
           fi
 
       - name: Закоммитить новую версию
+        if: ${{ steps.version_change.outputs.changed == 'true' }}
         env:
           NEXT_VERSION: ${{ steps.target_version.outputs.value }}
         run: |
@@ -260,6 +276,8 @@ jobs:
           NEXT_VERSION: ${{ steps.artifact_meta.outputs.version }}
           BUMP_TYPE: ${{ inputs.bump }}
           VERSION_SOURCE: ${{ steps.target_version.outputs.source }}
+          VERSION_CHANGED: ${{ steps.version_change.outputs.changed }}
+          VERSION_CHANGE_REASON: ${{ steps.version_change.outputs.reason }}
           TAG_NAME: ${{ steps.artifact_meta.outputs.tag }}
           RELEASE_TITLE: ${{ steps.artifact_meta.outputs.title }}
           HAS_CUSTOM_BODY: ${{ steps.artifact_meta.outputs.has_custom_body }}
@@ -276,6 +294,8 @@ jobs:
             echo "- Previous version: \`${CURRENT_VERSION}\`"
             echo "- Bump type: \`${BUMP_TYPE}\`"
             echo "- Version source: \`${VERSION_SOURCE}\`"
+            echo "- Version changed: \`${VERSION_CHANGED}\`"
+            echo "- Version change reason: \`${VERSION_CHANGE_REASON}\`"
             echo "- New version: \`${NEXT_VERSION}\`"
             echo "- Artifact: \`${JAR_NAME}\`"
             if [[ "$MODE" == "release" ]]; then
