@@ -20,6 +20,26 @@ on:
           - patch
           - minor
           - major
+      manual_version:
+        description: "Use a manually provided version instead of the automatic bump"
+        required: true
+        default: false
+        type: boolean
+      manual_version_value:
+        description: "Manual version to use when manual_version is enabled"
+        required: false
+        default: ""
+        type: string
+      manual_release_title:
+        description: "Optional custom release title for release mode"
+        required: false
+        default: ""
+        type: string
+      manual_release_body:
+        description: "Optional custom release body for release mode; replaces auto-generated notes"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: write
@@ -59,12 +79,25 @@ jobs:
           VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Calculate next version
-        id: next_version
+      - name: Resolve target version
+        id: target_version
         env:
           CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
           BUMP_TYPE: ${{ inputs.bump }}
+          MANUAL_VERSION: ${{ inputs.manual_version }}
+          MANUAL_VERSION_VALUE: ${{ inputs.manual_version_value }}
         run: |
+          if [[ "$MANUAL_VERSION" == "true" ]]; then
+            if [[ -z "$MANUAL_VERSION_VALUE" ]]; then
+              echo "manual_version is enabled, but manual_version_value is empty."
+              exit 1
+            fi
+
+            echo "value=$MANUAL_VERSION_VALUE" >> "$GITHUB_OUTPUT"
+            echo "source=manual" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
           if [[ -z "$MAJOR" || -z "$MINOR" || -z "$PATCH" ]]; then
@@ -89,19 +122,39 @@ jobs:
           esac
 
           echo "value=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "source=auto-bump" >> "$GITHUB_OUTPUT"
 
       - name: Update version in pom.xml
-        run: mvn -B versions:set -DnewVersion=${{ steps.next_version.outputs.value }} -DgenerateBackupPoms=false
+        run: mvn -B versions:set -DnewVersion=${{ steps.target_version.outputs.value }} -DgenerateBackupPoms=false
 
       - name: Prepare artifact metadata
         id: artifact_meta
         env:
-          VERSION: ${{ steps.next_version.outputs.value }}
+          MODE: ${{ inputs.mode }}
+          VERSION: ${{ steps.target_version.outputs.value }}
+          MANUAL_RELEASE_TITLE: ${{ inputs.manual_release_title }}
+          MANUAL_RELEASE_BODY: ${{ inputs.manual_release_body }}
         run: |
+          TITLE="$MANUAL_RELEASE_TITLE"
+          if [[ -z "$TITLE" ]]; then
+            TITLE="H-Manhunt ${VERSION}"
+          fi
+
+          HAS_CUSTOM_BODY=false
+          if [[ "$MODE" == "release" && -n "$MANUAL_RELEASE_BODY" ]]; then
+            HAS_CUSTOM_BODY=true
+          fi
+
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
           echo "jar=H-Manhunt-${VERSION}.jar" >> "$GITHUB_OUTPUT"
-          echo "title=H-Manhunt ${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "title=${TITLE}" >> "$GITHUB_OUTPUT"
+          echo "has_custom_body=${HAS_CUSTOM_BODY}" >> "$GITHUB_OUTPUT"
+          {
+            echo "body<<EOF"
+            echo "$MANUAL_RELEASE_BODY"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build plugin
         run: mvn -B package --file pom.xml
@@ -117,7 +170,7 @@ jobs:
 
       - name: Commit bumped version
         env:
-          NEXT_VERSION: ${{ steps.next_version.outputs.value }}
+          NEXT_VERSION: ${{ steps.target_version.outputs.value }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -181,7 +234,7 @@ jobs:
           git push origin "$TAG_NAME"
 
       - name: Create GitHub release and attach jar
-        if: ${{ inputs.mode == 'release' }}
+        if: ${{ inputs.mode == 'release' && steps.artifact_meta.outputs.has_custom_body != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.artifact_meta.outputs.tag }}
@@ -190,13 +243,26 @@ jobs:
           files: target/${{ steps.artifact_meta.outputs.jar }}
           generate_release_notes: true
 
+      - name: Create GitHub release with custom body and attach jar
+        if: ${{ inputs.mode == 'release' && steps.artifact_meta.outputs.has_custom_body == 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.artifact_meta.outputs.tag }}
+          target_commitish: main
+          name: ${{ steps.artifact_meta.outputs.title }}
+          body: ${{ steps.artifact_meta.outputs.body }}
+          files: target/${{ steps.artifact_meta.outputs.jar }}
+
       - name: Write workflow summary
         env:
           MODE: ${{ inputs.mode }}
           CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
           NEXT_VERSION: ${{ steps.artifact_meta.outputs.version }}
           BUMP_TYPE: ${{ inputs.bump }}
+          VERSION_SOURCE: ${{ steps.target_version.outputs.source }}
           TAG_NAME: ${{ steps.artifact_meta.outputs.tag }}
+          RELEASE_TITLE: ${{ steps.artifact_meta.outputs.title }}
+          HAS_CUSTOM_BODY: ${{ steps.artifact_meta.outputs.has_custom_body }}
           JAR_NAME: ${{ steps.artifact_meta.outputs.jar }}
         run: |
           {
@@ -209,9 +275,12 @@ jobs:
             echo "- Mode: \`${MODE}\`"
             echo "- Previous version: \`${CURRENT_VERSION}\`"
             echo "- Bump type: \`${BUMP_TYPE}\`"
+            echo "- Version source: \`${VERSION_SOURCE}\`"
             echo "- New version: \`${NEXT_VERSION}\`"
             echo "- Artifact: \`${JAR_NAME}\`"
             if [[ "$MODE" == "release" ]]; then
+              echo "- Release title: \`${RELEASE_TITLE}\`"
+              echo "- Custom release body: \`${HAS_CUSTOM_BODY}\`"
               echo "- Tag: \`${TAG_NAME}\`"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
