@@ -30,11 +30,6 @@ on:
         required: false
         default: ""
         type: string
-      manual_release_title:
-        description: "Необязательный заголовок релиза для режима release"
-        required: false
-        default: ""
-        type: string
       manual_release_body:
         description: "Необязательный текст релиза для режима release; заменяет авто-сгенерированные notes"
         required: false
@@ -89,7 +84,7 @@ jobs:
         run: |
           if [[ "$MANUAL_VERSION" == "true" ]]; then
             if [[ -z "$MANUAL_VERSION_VALUE" ]]; then
-              echo "manual_version is enabled, but manual_version_value is empty."
+              echo "manual_version включен, но manual_version_value пустой."
               exit 1
             fi
 
@@ -101,7 +96,7 @@ jobs:
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
           if [[ -z "$MAJOR" || -z "$MINOR" || -z "$PATCH" ]]; then
-            echo "Unsupported version format: $CURRENT_VERSION"
+            echo "Неподдерживаемый формат версии: $CURRENT_VERSION"
             exit 1
           fi
 
@@ -116,7 +111,7 @@ jobs:
               NEXT_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
               ;;
             *)
-              echo "Unknown bump type: $BUMP_TYPE"
+              echo "Неизвестный bump type: $BUMP_TYPE"
               exit 1
               ;;
           esac
@@ -132,10 +127,8 @@ jobs:
         run: |
           if [[ "$CURRENT_VERSION" == "$TARGET_VERSION" ]]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "reason=same-version" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "reason=version-update" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Обновить версию в pom.xml
@@ -147,13 +140,9 @@ jobs:
         env:
           MODE: ${{ inputs.mode }}
           VERSION: ${{ steps.target_version.outputs.value }}
-          MANUAL_RELEASE_TITLE: ${{ inputs.manual_release_title }}
           MANUAL_RELEASE_BODY: ${{ inputs.manual_release_body }}
         run: |
-          TITLE="$MANUAL_RELEASE_TITLE"
-          if [[ -z "$TITLE" ]]; then
-            TITLE="H-Manhunt ${VERSION}"
-          fi
+          TITLE="H-Manhunt ${VERSION}"
 
           HAS_CUSTOM_BODY=false
           if [[ "$MODE" == "release" && -n "$MANUAL_RELEASE_BODY" ]]; then
@@ -179,7 +168,7 @@ jobs:
           JAR_NAME: ${{ steps.artifact_meta.outputs.jar }}
         run: |
           if [[ ! -f "target/${JAR_NAME}" ]]; then
-            echo "Expected file target/${JAR_NAME} was not found"
+            echo "Не найден файл target/${JAR_NAME}"
             exit 1
           fi
 
@@ -209,7 +198,7 @@ jobs:
           VERSION: ${{ steps.artifact_meta.outputs.version }}
         run: |
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Only X.Y.Z version format is supported. Current value: $VERSION"
+            echo "Для релиза поддерживается только формат X.Y.Z. Сейчас: $VERSION"
             exit 1
           fi
 
@@ -219,12 +208,12 @@ jobs:
           TAG_NAME: ${{ steps.artifact_meta.outputs.tag }}
         run: |
           if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Tag $TAG_NAME already exists."
+            echo "Тег $TAG_NAME уже существует."
             exit 1
           fi
 
           if git ls-remote --tags origin "refs/tags/${TAG_NAME}" | grep -q .; then
-            echo "Tag $TAG_NAME already exists in origin."
+            echo "Тег $TAG_NAME уже есть в origin."
             exit 1
           fi
 
@@ -235,7 +224,7 @@ jobs:
           TAG_NAME: ${{ steps.artifact_meta.outputs.tag }}
         run: |
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Release $TAG_NAME already exists."
+            echo "Релиз $TAG_NAME уже существует."
             exit 1
           fi
 
@@ -275,11 +264,8 @@ jobs:
           CURRENT_VERSION: ${{ steps.current_version.outputs.value }}
           NEXT_VERSION: ${{ steps.artifact_meta.outputs.version }}
           BUMP_TYPE: ${{ inputs.bump }}
-          VERSION_SOURCE: ${{ steps.target_version.outputs.source }}
           VERSION_CHANGED: ${{ steps.version_change.outputs.changed }}
-          VERSION_CHANGE_REASON: ${{ steps.version_change.outputs.reason }}
           TAG_NAME: ${{ steps.artifact_meta.outputs.tag }}
-          RELEASE_TITLE: ${{ steps.artifact_meta.outputs.title }}
           HAS_CUSTOM_BODY: ${{ steps.artifact_meta.outputs.has_custom_body }}
           JAR_NAME: ${{ steps.artifact_meta.outputs.jar }}
         run: |
@@ -293,13 +279,10 @@ jobs:
             echo "- Mode: \`${MODE}\`"
             echo "- Previous version: \`${CURRENT_VERSION}\`"
             echo "- Bump type: \`${BUMP_TYPE}\`"
-            echo "- Version source: \`${VERSION_SOURCE}\`"
             echo "- Version changed: \`${VERSION_CHANGED}\`"
-            echo "- Version change reason: \`${VERSION_CHANGE_REASON}\`"
             echo "- New version: \`${NEXT_VERSION}\`"
             echo "- Artifact: \`${JAR_NAME}\`"
             if [[ "$MODE" == "release" ]]; then
-              echo "- Release title: \`${RELEASE_TITLE}\`"
               echo "- Custom release body: \`${HAS_CUSTOM_BODY}\`"
               echo "- Tag: \`${TAG_NAME}\`"
             fi
