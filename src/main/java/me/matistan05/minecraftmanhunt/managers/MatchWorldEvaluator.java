@@ -357,8 +357,7 @@ public class MatchWorldEvaluator {
             default -> 1;
         };
 
-        int scoreContribution = Math.max(0, anchor.score());
-        return Math.max(1, baseWeight + scoreContribution);
+        return baseWeight;
     }
 
     private Location findStartLocation(World world, Location naturalSpawn, StructureData anchor) {

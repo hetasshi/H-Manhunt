@@ -108,10 +108,10 @@
 | `matchWorlds.autoGenerate.villageSmithSearchRadiusBlocks` | int | `64` | Радиус проверки деревни на smith-building вокруг её центра |
 | `matchWorlds.autoGenerate.rareStructureSearchRadiusChunks` | int | `32` | Радиус поиска редких структур вроде особняка и башни илладжеров |
 | `matchWorlds.autoGenerate.anchorWeights.village` | int | `100` | Вес деревни при случайном выборе якорной структуры |
-| `matchWorlds.autoGenerate.anchorWeights.ruinedPortal` | int | `70` | Вес разрушенного портала при случайном выборе якорной структуры |
-| `matchWorlds.autoGenerate.anchorWeights.shipwreck` | int | `45` | Вес корабля при случайном выборе якорной структуры |
-| `matchWorlds.autoGenerate.anchorWeights.pillagerOutpost` | int | `18` | Вес башни илладжеров при случайном выборе якорной структуры |
-| `matchWorlds.autoGenerate.anchorWeights.woodlandMansion` | int | `10` | Вес особняка илладжеров при случайном выборе якорной структуры |
+| `matchWorlds.autoGenerate.anchorWeights.ruinedPortal` | int | `100` | Вес разрушенного портала при случайном выборе якорной структуры |
+| `matchWorlds.autoGenerate.anchorWeights.shipwreck` | int | `100` | Вес корабля при случайном выборе якорной структуры |
+| `matchWorlds.autoGenerate.anchorWeights.pillagerOutpost` | int | `100` | Вес башни илладжеров при случайном выборе якорной структуры |
+| `matchWorlds.autoGenerate.anchorWeights.woodlandMansion` | int | `100` | Вес особняка илладжеров при случайном выборе якорной структуры |
 | `matchWorlds.autoGenerate.startDistanceFromAnchor` | int | `100` | На каком расстоянии от ключевой структуры ставить стартовую точку и спавн матча |
 | `casual` | boolean | `true` | Способности охотников (Shift + ПКМ по компасу) |
 | `warpShadowsCooldown` | int | `300` | Кулдаун Warp Shadows (секунды) |
@@ -145,7 +145,7 @@
 Дополнительно:
 
 *   стартовая точка выбирается случайно по весам среди найденных структур;
-*   по умолчанию деревня имеет самый высокий шанс, но портал, корабль и редкие структуры тоже могут стать якорем;
+*   по умолчанию все якорные структуры имеют одинаковый вес, поэтому корабль, портал, деревня и редкие структуры выбираются равноправно;
 *   спидраннер получает короткую подсказку по направлению к ближайшей полезной структуре.
 
 ### Как работает Warp Shadows?

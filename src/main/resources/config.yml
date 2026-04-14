@@ -79,10 +79,10 @@ matchWorlds:
     # Веса для случайного выбора якорной структуры после оценки мира
     anchorWeights:
       village: 100
-      ruinedPortal: 70
-      shipwreck: 45
-      pillagerOutpost: 18
-      woodlandMansion: 10
+      ruinedPortal: 100
+      shipwreck: 100
+      pillagerOutpost: 100
+      woodlandMansion: 100
     # На каком расстоянии от ключевой структуры ставить стартовую точку и спавн матча
     startDistanceFromAnchor: 100
 
