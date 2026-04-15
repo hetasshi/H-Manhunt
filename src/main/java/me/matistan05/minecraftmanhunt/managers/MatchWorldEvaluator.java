@@ -413,7 +413,7 @@ public class MatchWorldEvaluator {
             return sourceName + ". Координаты: X " + location.getBlockX()
                     + ", Y " + location.getBlockY()
                     + ", Z " + location.getBlockZ()
-                    + ". Направление (привет илья хуй жопа): " + directionFromTo(startLocation, location) + ".";
+                    + ". Направление: " + directionFromTo(startLocation, location) + ".";
         }
 
         HintTarget bestHint = null;
