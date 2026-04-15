@@ -36,11 +36,11 @@ public class InteractListener implements Listener {
             return;
         Action a = e.getAction();
         if (a == Action.LEFT_CLICK_AIR || a == Action.LEFT_CLICK_BLOCK) {
-            if (!main.getConfig().getBoolean("trackNearestMode"))
+            if (!main.getConfig().getBoolean("compass.track-nearest-mode"))
                 return;
             getHunter(p.getName()).setCompassMode(0);
         } else if (a == Action.RIGHT_CLICK_AIR || a == Action.RIGHT_CLICK_BLOCK) {
-            if (main.getConfig().getBoolean("compassMenu")) {
+            if (main.getConfig().getBoolean("compass.menu-enabled")) {
                 if (getHunter(p.getName()).getCompassMode() == 0) {
                     getHunter(p.getName()).setCompassMode(1);
                 } else {

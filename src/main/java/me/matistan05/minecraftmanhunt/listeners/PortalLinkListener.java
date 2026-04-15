@@ -20,7 +20,7 @@ public class PortalLinkListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPortalReady(EntityPortalReadyEvent event) {
-        if (!main.getConfig().getBoolean("matchWorlds.enabled", false)) {
+        if (!main.getConfig().getBoolean("match-worlds.enabled", false)) {
             return;
         }
 

@@ -29,8 +29,8 @@ public class AbilitiesMenu {
         if (meta != null) {
             meta.displayName(mm.deserialize("<gradient:#aa00ff:#ff55ff><bold>Варп тени</bold></gradient>"));
             List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
-            int dist = main.getConfig().getInt("warpShadowsMaxDistance");
-            int cd = main.getConfig().getInt("warpShadowsCooldown");
+            int dist = main.getConfig().getInt("casual.warp-shadows.max-distance");
+            int cd = main.getConfig().getInt("casual.warp-shadows.cooldown-seconds");
             lore.add(mm.deserialize("<gray>Телепортация в сторону бегуна"));
             lore.add(mm.deserialize("<gray>на расстояние до <white>" + dist + "</white> блоков."));
             lore.add(net.kyori.adventure.text.Component.empty());

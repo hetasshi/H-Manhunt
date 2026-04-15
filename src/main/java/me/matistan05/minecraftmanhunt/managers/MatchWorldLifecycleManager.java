@@ -50,8 +50,8 @@ public class MatchWorldLifecycleManager {
     }
 
     public void cleanupUnusedAutoWorlds(String activeBaseWorldName) {
-        String prefix = main.getConfig().getString("matchWorlds.autoGenerate.worldPrefix", "manhunt_match_");
-        int keepLatest = Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.keepLatestWorlds", 2));
+        String prefix = main.getConfig().getString("match-worlds.auto-generate.world-prefix", "manhunt_match_");
+        int keepLatest = Math.max(1, main.getConfig().getInt("match-worlds.auto-generate.keep-latest-worlds", 2));
 
         List<String> autoWorldBases = Bukkit.getWorlds().stream()
                 .map(World::getName)

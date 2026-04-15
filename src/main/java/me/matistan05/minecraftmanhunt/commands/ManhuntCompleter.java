@@ -66,7 +66,7 @@ public class ManhuntCompleter implements TabCompleter {
             }
         } else if (args.length > 1 && args[0].equals("rules")) {
             if (args.length == 2) {
-                list = main.getConfig().getKeys(false).stream()
+                list = main.getConfig().getKeys(true).stream()
                         .filter(s -> RulesConfigSupport.isEditableRule(main, s))
                         .filter(s -> startsWith(s, args[1]))
                         .collect(Collectors.toList());

@@ -1,114 +1,104 @@
-# modded hetashi
-# Конфигурация Minecraft Manhunt
+# Конфигурация H-Manhunt
+# Файл автоматически обновляется при запуске:
+# добавляются только новые ключи, пользовательские значения не трогаются, комментарии сохраняются.
 
-# Если true, при старте игры будет установлено дневное время
-timeSetDayOnStart: true
+gameplay:
+  # Начинать матч днем
+  day-on-start: true
+  # Очищать погоду при старте матча
+  weather-clear-on-start: true
+  # Длительность форы для спидраннеров в секундах
+  head-start-seconds: 0
+  # Количество жизней у каждого спидраннера
+  speedrunners-lives: 1
+  # Переводить погибших игроков в режим наблюдателя
+  spectator-after-death: true
+  # Телепортировать игроков к точке старта матча перед началом игры
+  teleport-on-start: true
+  # Включить урон по своим внутри команд
+  friendly-fire: true
+  # Очищать инвентари при старте матча
+  clear-inventories: true
+  # Временно снимать OP на время активного матча
+  take-away-ops: true
+  # Разрешить команды /manhunt pause и /manhunt unpause
+  pause-enabled: true
+  # Ускорять плавку в печках во время активного матча
+  fast-furnace-speed: true
 
-# Если true, при старте игры погода будет ясной
-weatherClearOnStart: true
+permissions:
+  # Если true, команды смогут использовать только игроки с правами manhunt.*
+  enabled: false
 
-# Длительность форы для спидраннеров в секундах
-headStartDuration: 0
+compass:
+  # Разрешить охотникам выбирать цель через меню
+  menu-enabled: false
+  # Отслеживать ближайшего спидраннера вместо фиксированной цели
+  track-nearest-mode: true
+  # Продолжать отслеживание через порталы
+  track-portals: true
+  # Использовать новый BossBar-радар вместо стандартного локатора
+  bossbar-radar: false
 
-# Количество жизней у спидраннеров
-speedrunnersLives: 1
-
-# Если true, погибшие игроки перейдут в режим наблюдателя
-spectatorAfterDeath: true
-
-# Если true, игроки будут телепортированы друг к другу при старте игры
-teleport: true
-
-# Если true, охотники смогут отслеживать спидраннеров через порталы
-trackPortals: true
-
-# Если true, включен огонь по своим (friendly fire)
-friendlyFire: true
-
-# Если true, охотники могут использовать меню для выбора цели отслеживания
-compassMenu: false
-
-# Если true, охотники могут выбрать отслеживание ближайшего спидраннера
-trackNearestMode: true
-
-# Если true, инвентари будут очищены при старте игры
-clearInventories: true
-
-# Если true, игроки потеряют статус оператора при старте и получат его обратно после завершения
-takeAwayOps: true
-
-# Если true, только игроки с правами 'manhunt.help', 'manhunt.rules' и т.д. смогут использовать команды
-usePermissions: false
-
-# Если true, используется новый BossBar радар. Если false - стандартная подсветка (Locator Bar v1.21)
-useBossBarRadar: false
-
-# Если true, команды /manhunt pause и /manhunt unpause доступны
-enablePauses: true
-
-# Если true, во время активной игры печки плавят в 2 раза быстрее
-fastplavka: true
-
-# --- Матч-миры / собственная автогенерация ---
-# Если true, /manhunt start будет автоматически создавать новый мир под матч
-matchWorlds:
+match-worlds:
+  # Автоматически генерировать отдельный мир матча при /manhunt start
   enabled: true
-  autoGenerate:
-    # Префикс имени мира. Каждый новый матч получает уникальное имя
-    worldPrefix: "manhunt_match_"
-    # Сколько последних автосозданных миров хранить загруженными/на диске
-    keepLatestWorlds: 1
+  auto-generate:
+    # Префикс для новых миров матча
+    world-prefix: "manhunt_match_"
+    # Сколько последних сгенерированных миров хранить
+    keep-latest-worlds: 1
     # Сколько сидов пробовать перед выбором лучшего кандидата
-    maxAttempts: 2
-    # Минимальный скор мира, после которого он принимается сразу
-    minScoreToAccept: 90
-    # Если идеальный мир не найден, взять лучший из проверенных
-    acceptBestCandidateIfThresholdMissed: true
-    # Можно заранее указать список сидов. Если пусто - сиды случайные
-    fixedSeeds: []
-    # Радиус поиска полезных структур вокруг спавна в чанках
-    structureSearchRadiusChunks: 18
-    # Если true, деревни с полезной для спидрана кузницей у лавы и лутовым сундуком получают приоритет
-    preferVillageWithSmithBuilding: true
-    # Если true, деревня без полезной кузницы с лутовым сундуком перестаёт считаться якорной структурой
-    requireVillageWithSmithBuilding: true
-    # Радиус локального поиска лавы и лутового сундука weaponsmith/toolsmith внутри найденной деревни
-    villageSmithSearchRadiusBlocks: 64
-    # Радиус поиска редких структур вроде особняка и башни илладжеров
-    rareStructureSearchRadiusChunks: 32
-    # Веса для случайного выбора якорной структуры после оценки мира
-    anchorWeights:
+    max-attempts: 2
+    # Минимальный балл для немедленного принятия мира
+    min-score-to-accept: 90
+    # Если ни один кандидат не достиг порога, брать лучший из проверенных
+    accept-best-candidate-if-threshold-missed: true
+    # Необязательный список ручных сидов. Оставь пустым для случайных сидов
+    fixed-seeds: []
+    # Радиус поиска обычных структур вокруг спавна, в чанках
+    structure-search-radius-chunks: 18
+    # Радиус поиска редких структур, в чанках
+    rare-structure-search-radius-chunks: 32
+    # Расстояние от выбранной якорной структуры до точки старта матча
+    start-distance-from-anchor: 100
+    # Веса структур при выборе якорной структуры
+    anchor-weights:
       village: 100
-      ruinedPortal: 100
+      ruined-portal: 100
       shipwreck: 100
-      pillagerOutpost: 100
-      woodlandMansion: 100
-    # На каком расстоянии от ключевой структуры ставить стартовую точку и спавн матча
-    startDistanceFromAnchor: 100
+      pillager-outpost: 100
+      woodland-mansion: 100
+    village:
+      # Предпочитать деревни, где есть постройка кузнечного типа
+      prefer-smith-building: true
+      # Отбрасывать деревни без кузнечной постройки
+      require-smith-building: true
+      # Радиус поиска кузнечной постройки внутри деревни
+      smith-search-radius-blocks: 64
 
-# --- Казуальный режим ---
-# Включает способности охотников через компас (Shift + ПКМ)
-casual: true
-
-# Способность Shadows Warp
-warpShadowsCooldown: 300
-warpShadowsMaxDistance: 200
-warpShadowsBufferZone: 40
-
-# --- Автообновление плагина через GitHub Releases ---
-# Настройки команд: /manhunt update check и /manhunt update download
-update:
-  # true - система обновлений включена, false - полностью отключена
+casual:
+  # Включить способности охотников через компас
   enabled: true
-  # true - проверять новую версию при запуске сервера
-  checkOnStartup: true
-  # Репозиторий с релизами в формате owner/repo
-  owner: "hetasshi"
-  repository: "H-Manhunt"
-  # false - только обычные релизы, true - также prerelease
-  allowPrerelease: false
-  # Имя .jar файла из релиза для скачивания (точное совпадение, без учета регистра)
-  # Пример: "H-Manhunt-2.4.1.jar"
-  # Если оставить пустым, будет выбран первый .jar asset из релиза
-  # Советую просто не трогать это
-  assetName: ""
+  warp-shadows:
+    # Кулдаун Warp Shadows в секундах
+    cooldown-seconds: 300
+    # Расстояние до цели после варпа
+    max-distance: 200
+    # Минимальная дистанция, на которой Warp Shadows может сработать
+    buffer-zone: 40
+
+updates:
+  # Включить или отключить проверку релизов на GitHub
+  enabled: true
+  # Автоматически проверять обновления при запуске
+  check-on-startup: true
+  github:
+    # GitHub-аккаунт, который публикует релизы
+    owner: "hetasshi"
+    # GitHub-репозиторий с релизами
+    repository: "H-Manhunt"
+    # Учитывать prerelease-релизы
+    allow-prerelease: false
+    # Точное имя jar-артефакта для скачивания. Оставь пустым, чтобы взять первый .jar asset
+    asset-name: ""

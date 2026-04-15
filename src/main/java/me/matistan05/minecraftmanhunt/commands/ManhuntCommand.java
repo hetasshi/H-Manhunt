@@ -63,7 +63,7 @@ public class ManhuntCommand implements CommandExecutor {
             p.sendMessage(mm.deserialize(
                     "<gray>Вы должны ввести аргумент. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
         } else if (args[0].equals("help")) {
-            if (!p.hasPermission("manhunt.help") && main.getConfig().getBoolean("usePermissions")) {
+            if (!p.hasPermission("manhunt.help") && main.getConfig().getBoolean("permissions.enabled")) {
                 p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
@@ -125,7 +125,7 @@ public class ManhuntCommand implements CommandExecutor {
             p.sendMessage(mm.deserialize("<red>Неверный аргумент. Используйте: /manhunt update check|download"));
             return true;
         } else if (args[0].equals("rules")) {
-            if (!p.hasPermission("manhunt.rules") && main.getConfig().getBoolean("usePermissions")) {
+            if (!p.hasPermission("manhunt.rules") && main.getConfig().getBoolean("permissions.enabled")) {
                 p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
@@ -161,12 +161,16 @@ public class ManhuntCommand implements CommandExecutor {
                         + RulesConfigSupport.expectedValueHint(ruleType) + "!"));
                 return true;
             }
-            main.getConfig().set(args[1], parsedValue);
-            main.saveConfig();
-            p.sendMessage(mm.deserialize("<gray>Значение правила <gradient:#ff4444:#ffaaaa>" + args[1]
-                    + "</gradient> было изменено на: <white>" + parsedValue));
+            boolean saved = main.getConfigUpdater().setValue(args[1], parsedValue);
+            if (saved) {
+                p.sendMessage(mm.deserialize("<gray>Значение правила <gradient:#ff4444:#ffaaaa>" + args[1]
+                        + "</gradient> было изменено на: <white>" + parsedValue));
+            } else {
+                p.sendMessage(mm.deserialize(
+                        "<red>Не удалось сохранить правило. Проверьте права на `config.yml` и попробуйте ещё раз."));
+            }
         } else if (args[0].equals("add")) {
-            if (!p.hasPermission("manhunt.add") && main.getConfig().getBoolean("usePermissions")) {
+            if (!p.hasPermission("manhunt.add") && main.getConfig().getBoolean("permissions.enabled")) {
                 p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
@@ -278,7 +282,7 @@ public class ManhuntCommand implements CommandExecutor {
             }
             p.sendMessage(mm.deserialize("<red>Неверная роль! Помощь: /manhunt help"));
         } else if (args[0].equals("remove")) {
-            if (!p.hasPermission("manhunt.remove") && main.getConfig().getBoolean("usePermissions")) {
+            if (!p.hasPermission("manhunt.remove") && main.getConfig().getBoolean("permissions.enabled")) {
                 p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
@@ -332,7 +336,7 @@ public class ManhuntCommand implements CommandExecutor {
                 reset();
             }
         } else if (args[0].equals("start")) {
-            if (!p.hasPermission("manhunt.start") && main.getConfig().getBoolean("usePermissions")) {
+            if (!p.hasPermission("manhunt.start") && main.getConfig().getBoolean("permissions.enabled")) {
                 p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
@@ -371,10 +375,10 @@ public class ManhuntCommand implements CommandExecutor {
                     return true;
                 }
             }
-            if (main.getConfig().getBoolean("timeSetDayOnStart")) {
+            if (main.getConfig().getBoolean("gameplay.day-on-start")) {
                 setTimeAllWorlds(0);
             }
-            if (main.getConfig().getBoolean("weatherClearOnStart")) {
+            if (main.getConfig().getBoolean("gameplay.weather-clear-on-start")) {
                 setWeatherAllWorlds(false);
             }
             findPlayer = null;
@@ -395,13 +399,13 @@ public class ManhuntCommand implements CommandExecutor {
                 }
             }
 
-            if (main.getConfig().getBoolean("useBossBarRadar", true)) {
+            if (main.getConfig().getBoolean("compass.bossbar-radar", true)) {
                 radarManager.start();
             } else {
                 setLocatorBarAllWorlds(true);
             }
 
-            if (main.getConfig().getBoolean("teleport")) {
+            if (main.getConfig().getBoolean("gameplay.teleport-on-start")) {
                 for (Speedrunner speedrunnerObject : speedrunners) {
                     Player pl = Bukkit.getPlayerExact(speedrunnerObject.getName());
                     if (pl != null) {
@@ -429,7 +433,7 @@ public class ManhuntCommand implements CommandExecutor {
                 setUpPlayer(speedrunnerObject.getName(), false);
             }
             waitingForStart = true;
-            secondsToStart = Math.max(main.getConfig().getInt("headStartDuration"), 0);
+            secondsToStart = Math.max(main.getConfig().getInt("gameplay.head-start-seconds"), 0);
             starting = new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -454,7 +458,7 @@ public class ManhuntCommand implements CommandExecutor {
             }.runTaskTimer(main, 0, 1);
 
         } else if (args[0].equals("reset")) {
-            if (!p.hasPermission("manhunt.reset") && main.getConfig().getBoolean("usePermissions")) {
+            if (!p.hasPermission("manhunt.reset") && main.getConfig().getBoolean("permissions.enabled")) {
                 p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
@@ -471,7 +475,7 @@ public class ManhuntCommand implements CommandExecutor {
                         "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                 return true;
             }
-            if (!p.hasPermission("manhunt.pause") && main.getConfig().getBoolean("usePermissions")
+            if (!p.hasPermission("manhunt.pause") && main.getConfig().getBoolean("permissions.enabled")
                     && !isInGame(p.getName())) {
                 p.sendMessage(mm.deserialize("<red>Вы должны быть в игре, чтобы голосовать, или иметь права!"));
                 return true;
@@ -480,7 +484,7 @@ public class ManhuntCommand implements CommandExecutor {
                 p.sendMessage(mm.deserialize("<red>Игра не запущена!"));
                 return true;
             }
-            if (!main.getConfig().getBoolean("enablePauses")) {
+            if (!main.getConfig().getBoolean("gameplay.pause-enabled")) {
                 p.sendMessage(mm.deserialize("<red>Паузы отключены!"));
                 return true;
             }
@@ -519,7 +523,7 @@ public class ManhuntCommand implements CommandExecutor {
                         "<gray>Неправильное использование. Для помощи введите: <gradient:#ff4444:#ffaaaa>/manhunt help</gradient>"));
                 return true;
             }
-            if (!p.hasPermission("manhunt.unpause") && main.getConfig().getBoolean("usePermissions")
+            if (!p.hasPermission("manhunt.unpause") && main.getConfig().getBoolean("permissions.enabled")
                     && !isInGame(p.getName())) {
                 p.sendMessage(mm.deserialize("<red>Вы должны быть в игре, чтобы голосовать, или иметь права!"));
                 return true;
@@ -528,7 +532,7 @@ public class ManhuntCommand implements CommandExecutor {
                 p.sendMessage(mm.deserialize("<red>Игра не запущена!"));
                 return true;
             }
-            if (!main.getConfig().getBoolean("enablePauses")) {
+            if (!main.getConfig().getBoolean("gameplay.pause-enabled")) {
                 p.sendMessage(mm.deserialize("<red>Паузы отключены!"));
                 return true;
             }
@@ -562,7 +566,7 @@ public class ManhuntCommand implements CommandExecutor {
                 }.runTaskLater(main, 1200);
             }
         } else if (args[0].equals("list")) {
-            if (!p.hasPermission("manhunt.list") && main.getConfig().getBoolean("usePermissions")) {
+            if (!p.hasPermission("manhunt.list") && main.getConfig().getBoolean("permissions.enabled")) {
                 p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
                 return true;
             }
@@ -608,7 +612,7 @@ public class ManhuntCommand implements CommandExecutor {
         if (hunterObject != null) {
             Player hunter = Bukkit.getPlayerExact(name);
             if (inGame || waitingForStart) {
-                if (main.getConfig().getBoolean("takeAwayOps")) {
+                if (main.getConfig().getBoolean("gameplay.take-away-ops")) {
                     OfflinePlayer target = Bukkit.getOfflinePlayer(name);
                     target.setOp(hunterObject.isOp());
                 }
@@ -620,7 +624,7 @@ public class ManhuntCommand implements CommandExecutor {
             hunters.removeIf(h -> h.getName().equals(name));
         } else if (speedrunnerObject != null) {
             if (inGame || waitingForStart) {
-                if (main.getConfig().getBoolean("takeAwayOps")) {
+                if (main.getConfig().getBoolean("gameplay.take-away-ops")) {
                     OfflinePlayer target = Bukkit.getOfflinePlayer(name);
                     target.setOp(speedrunnerObject.isOp());
                 }
@@ -729,12 +733,12 @@ public class ManhuntCommand implements CommandExecutor {
         if (Bukkit.getScoreboardManager() != null) {
             player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
         }
-        if (main.getConfig().getBoolean("clearInventories")) {
+        if (main.getConfig().getBoolean("gameplay.clear-inventories")) {
             player.getInventory().clear();
         }
         if (startLocation != null && !inGame) {
             player.teleport(startLocation);
-        } else if (main.getConfig().getBoolean("teleport") && !inGame) {
+        } else if (main.getConfig().getBoolean("gameplay.teleport-on-start") && !inGame) {
             player.teleport(findPlayer);
         }
         player.setGameMode(GameMode.SURVIVAL);
@@ -754,7 +758,7 @@ public class ManhuntCommand implements CommandExecutor {
             player.getInventory().setItem(8, waypointManager.getCompass());
             hunterObject.setWhichSpeedrunner(speedrunners.get(0).getName());
             hunterObject.setCompassMode(1);
-            if (main.getConfig().getBoolean("takeAwayOps")) {
+            if (main.getConfig().getBoolean("gameplay.take-away-ops")) {
                 hunterObject.setOp(player.isOp());
                 player.setOp(false);
             }
@@ -778,11 +782,11 @@ public class ManhuntCommand implements CommandExecutor {
                 speedrunnerObject.setLocTheEnd(player.getLocation());
             } else
                 speedrunnerObject.setLocTheEnd(null);
-            speedrunnerObject.setLives(Math.max(main.getConfig().getInt("speedrunnersLives"), 1));
-            if (main.getConfig().getBoolean("spectatorAfterDeath")) {
+            speedrunnerObject.setLives(Math.max(main.getConfig().getInt("gameplay.speedrunners-lives"), 1));
+            if (main.getConfig().getBoolean("gameplay.spectator-after-death")) {
                 speedrunnerObject.setGameMode(player.getGameMode());
             }
-            if (main.getConfig().getBoolean("takeAwayOps")) {
+            if (main.getConfig().getBoolean("gameplay.take-away-ops")) {
                 speedrunnerObject.setOp(player.isOp());
                 player.setOp(false);
             }
@@ -849,7 +853,7 @@ public class ManhuntCommand implements CommandExecutor {
     }
 
     private static Collection<World> resolveLocatorBarTargetWorlds() {
-        if (!main.getConfig().getBoolean("matchWorlds.enabled", false)) {
+        if (!main.getConfig().getBoolean("match-worlds.enabled", false)) {
             return Bukkit.getWorlds();
         }
 

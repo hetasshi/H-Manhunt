@@ -42,7 +42,7 @@ public class DeathListener implements Listener {
                     playersTitle(mm.deserialize("<gradient:#aa0000:#ff0000><bold>ПОБЕДА ОХОТНИКОВ!</bold></gradient>"));
                     reset();
                 } else {
-                    if (main.getConfig().getBoolean("spectatorAfterDeath")) {
+                    if (main.getConfig().getBoolean("gameplay.spectator-after-death")) {
                         p.setGameMode(GameMode.SPECTATOR);
                     }
                     removePlayer(p.getName());

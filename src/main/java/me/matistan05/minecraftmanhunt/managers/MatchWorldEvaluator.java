@@ -144,13 +144,13 @@ public class MatchWorldEvaluator {
         };
 
         int radiusChunks = Math.max(8,
-                main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
+                main.getConfig().getInt("match-worlds.auto-generate.structure-search-radius-chunks", 18));
         boolean preferVillageWithSmithBuilding = main.getConfig().getBoolean(
-                "matchWorlds.autoGenerate.preferVillageWithSmithBuilding", true);
+                "match-worlds.auto-generate.village.prefer-smith-building", true);
         boolean requireVillageWithSmithBuilding = main.getConfig().getBoolean(
-                "matchWorlds.autoGenerate.requireVillageWithSmithBuilding", false);
+                "match-worlds.auto-generate.village.require-smith-building", false);
         int smithSearchRadiusBlocks = Math.max(24, main.getConfig().getInt(
-                "matchWorlds.autoGenerate.villageSmithSearchRadiusBlocks", 64));
+                "match-worlds.auto-generate.village.smith-search-radius-blocks", 64));
         StructureData bestVillage = null;
         StructureData bestSmithVillage = null;
         for (Structure villageStructure : villages) {
@@ -207,7 +207,7 @@ public class MatchWorldEvaluator {
 
     private StructureData locateRuinedPortal(World world, Location spawn, StringBuilder summary) {
         int radiusChunks = Math.max(8,
-                main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
+                main.getConfig().getInt("match-worlds.auto-generate.structure-search-radius-chunks", 18));
         StructureSearchResult result = world.locateNearestStructure(spawn, StructureType.RUINED_PORTAL, radiusChunks,
                 false);
         if (result == null) {
@@ -223,7 +223,7 @@ public class MatchWorldEvaluator {
 
     private StructureData locateShipwreck(World world, Location spawn, StringBuilder summary) {
         int radiusChunks = Math.max(8,
-                main.getConfig().getInt("matchWorlds.autoGenerate.structureSearchRadiusChunks", 18));
+                main.getConfig().getInt("match-worlds.auto-generate.structure-search-radius-chunks", 18));
         StructureData bestShipwreck = null;
         Structure[] shipwreckStructures = {
                 Structure.SHIPWRECK,
@@ -259,7 +259,7 @@ public class MatchWorldEvaluator {
 
     private StructureData locateRareStructure(World world, Location spawn, StringBuilder summary) {
         int radiusChunks = Math.max(16,
-                main.getConfig().getInt("matchWorlds.autoGenerate.rareStructureSearchRadiusChunks", 32));
+                main.getConfig().getInt("match-worlds.auto-generate.rare-structure-search-radius-chunks", 32));
         StructureData mansion = locateRareCandidate(
                 world,
                 spawn,
@@ -345,15 +345,15 @@ public class MatchWorldEvaluator {
     private int calculateAnchorWeight(StructureData anchor) {
         int baseWeight = switch (anchor.structureKey()) {
             case "village" ->
-                Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.village", 100));
+                Math.max(1, main.getConfig().getInt("match-worlds.auto-generate.anchor-weights.village", 100));
             case "ruined_portal" ->
-                Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.ruinedPortal", 70));
+                Math.max(1, main.getConfig().getInt("match-worlds.auto-generate.anchor-weights.ruined-portal", 70));
             case "shipwreck", "beached_shipwreck" ->
-                Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.shipwreck", 45));
+                Math.max(1, main.getConfig().getInt("match-worlds.auto-generate.anchor-weights.shipwreck", 45));
             case "pillager_outpost" ->
-                Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.pillagerOutpost", 18));
+                Math.max(1, main.getConfig().getInt("match-worlds.auto-generate.anchor-weights.pillager-outpost", 18));
             case "woodland_mansion" ->
-                Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.anchorWeights.woodlandMansion", 10));
+                Math.max(1, main.getConfig().getInt("match-worlds.auto-generate.anchor-weights.woodland-mansion", 10));
             default -> 1;
         };
 
@@ -367,7 +367,7 @@ public class MatchWorldEvaluator {
         }
 
         int desiredDistance = Math.max(40,
-                main.getConfig().getInt("matchWorlds.autoGenerate.startDistanceFromAnchor", 100));
+                main.getConfig().getInt("match-worlds.auto-generate.start-distance-from-anchor", 100));
         Location anchorLocation = anchor.location().clone();
         Vector direction = naturalSpawn.toVector().subtract(anchorLocation.toVector()).setY(0);
         if (direction.lengthSquared() < 1.0) {

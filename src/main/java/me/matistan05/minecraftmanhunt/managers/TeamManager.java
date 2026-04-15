@@ -21,7 +21,7 @@ public class TeamManager {
             scoreboard.getTeam("hunters").unregister();
         }
         Team huntersTeam = scoreboard.registerNewTeam("hunters");
-        huntersTeam.setAllowFriendlyFire(main.getConfig().getBoolean("friendlyFire"));
+        huntersTeam.setAllowFriendlyFire(main.getConfig().getBoolean("gameplay.friendly-fire"));
         huntersTeam.color(NamedTextColor.WHITE);
         huntersTeam.prefix(Component.empty());
         huntersTeam.suffix(Component.empty());
@@ -31,7 +31,7 @@ public class TeamManager {
             scoreboard.getTeam("speedrunners").unregister();
         }
         Team speedrunnersTeam = scoreboard.registerNewTeam("speedrunners");
-        speedrunnersTeam.setAllowFriendlyFire(main.getConfig().getBoolean("friendlyFire"));
+        speedrunnersTeam.setAllowFriendlyFire(main.getConfig().getBoolean("gameplay.friendly-fire"));
         speedrunnersTeam.color(NamedTextColor.WHITE);
         speedrunnersTeam.prefix(Component.empty());
         speedrunnersTeam.suffix(Component.empty());

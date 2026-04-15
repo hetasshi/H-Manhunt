@@ -23,18 +23,18 @@ public class MatchWorldManager {
     }
 
     public PreparedMatchWorld prepareMatchWorld() {
-        if (!main.getConfig().getBoolean("matchWorlds.enabled", false)) {
+        if (!main.getConfig().getBoolean("match-worlds.enabled", false)) {
             return PreparedMatchWorld.disabled();
         }
 
         lifecycleManager.cleanupUnusedAutoWorlds(activeSession == null ? null : activeSession.baseWorldName());
 
-        int maxAttempts = Math.max(1, main.getConfig().getInt("matchWorlds.autoGenerate.maxAttempts", 4));
+        int maxAttempts = Math.max(1, main.getConfig().getInt("match-worlds.auto-generate.max-attempts", 4));
         int minScore = Math.min(
-                main.getConfig().getInt("matchWorlds.autoGenerate.minScoreToAccept", 90),
+                main.getConfig().getInt("match-worlds.auto-generate.min-score-to-accept", 90),
                 MAX_LIVE_EVALUATION_SCORE);
         boolean fallbackToBest = main.getConfig().getBoolean(
-                "matchWorlds.autoGenerate.acceptBestCandidateIfThresholdMissed", true);
+                "match-worlds.auto-generate.accept-best-candidate-if-threshold-missed", true);
 
         MatchWorldCandidate bestCandidate = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -67,7 +67,7 @@ public class MatchWorldManager {
     }
 
     public void resetActiveMatchWorld() {
-        if (!main.getConfig().getBoolean("matchWorlds.enabled", false)) {
+        if (!main.getConfig().getBoolean("match-worlds.enabled", false)) {
             return;
         }
         if (activeSession != null) {
@@ -113,7 +113,7 @@ public class MatchWorldManager {
     }
 
     private long resolveSeed(int attempt) {
-        List<Long> fixedSeeds = main.getConfig().getLongList("matchWorlds.autoGenerate.fixedSeeds");
+        List<Long> fixedSeeds = main.getConfig().getLongList("match-worlds.auto-generate.fixed-seeds");
         if (!fixedSeeds.isEmpty()) {
             return fixedSeeds.get((attempt - 1) % fixedSeeds.size());
         }
@@ -121,7 +121,7 @@ public class MatchWorldManager {
     }
 
     private String nextBaseWorldName() {
-        String prefix = main.getConfig().getString("matchWorlds.autoGenerate.worldPrefix", "manhunt_match_");
+        String prefix = main.getConfig().getString("match-worlds.auto-generate.world-prefix", "manhunt_match_");
         return prefix + System.currentTimeMillis();
     }
 

@@ -18,7 +18,7 @@ public class FurnaceSpeedListener implements Listener {
 
     @EventHandler
     public void onFurnaceStartSmelt(FurnaceStartSmeltEvent e) {
-        if (!inGame || !main.getConfig().getBoolean("fastplavka", true)) {
+        if (!inGame || !main.getConfig().getBoolean("gameplay.fast-furnace-speed", true)) {
             return;
         }
 

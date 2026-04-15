@@ -48,7 +48,7 @@ public class UpdateManager {
             sendConsoleInfo("Проверка обновлений отключена в config.yml.");
             return;
         }
-        if (!main.getConfig().getBoolean("update.checkOnStartup", true)) {
+        if (!main.getConfig().getBoolean("updates.check-on-startup", true)) {
             sendConsoleInfo("Автопроверка при запуске отключена в config.yml.");
             return;
         }
@@ -57,7 +57,7 @@ public class UpdateManager {
 
     public void checkByCommand(CommandSender sender) {
         if (!isEnabled()) {
-            sendMessage(sender, CHAT_PREFIX + "<red>Проверка обновлений отключена в config.yml (update.enabled: false).</red>");
+            sendMessage(sender, CHAT_PREFIX + "<red>Проверка обновлений отключена в config.yml (updates.enabled: false).</red>");
             return;
         }
         checkAsync(sender, false, false);
@@ -65,7 +65,7 @@ public class UpdateManager {
 
     public void downloadByCommand(CommandSender sender) {
         if (!isEnabled()) {
-            sendMessage(sender, CHAT_PREFIX + "<red>Проверка обновлений отключена в config.yml (update.enabled: false).</red>");
+            sendMessage(sender, CHAT_PREFIX + "<red>Проверка обновлений отключена в config.yml (updates.enabled: false).</red>");
             return;
         }
         checkAsync(sender, true, false);
@@ -109,12 +109,12 @@ public class UpdateManager {
     }
 
     private ReleaseInfo fetchLatestRelease() throws IOException, InterruptedException {
-        String owner = main.getConfig().getString("update.owner", "hetasshi");
-        String repository = main.getConfig().getString("update.repository", "H-Manhunt");
-        boolean allowPrerelease = main.getConfig().getBoolean("update.allowPrerelease", false);
+        String owner = main.getConfig().getString("updates.github.owner", "hetasshi");
+        String repository = main.getConfig().getString("updates.github.repository", "H-Manhunt");
+        boolean allowPrerelease = main.getConfig().getBoolean("updates.github.allow-prerelease", false);
 
         if (owner == null || owner.isBlank() || repository == null || repository.isBlank()) {
-            throw new IllegalStateException("Пустые update.owner/update.repository в config.yml");
+            throw new IllegalStateException("Пустые updates.github.owner/updates.github.repository в config.yml");
         }
 
         if (!allowPrerelease) {
@@ -168,7 +168,7 @@ public class UpdateManager {
             return null;
         }
 
-        String preferredAssetName = main.getConfig().getString("update.assetName", "");
+        String preferredAssetName = main.getConfig().getString("updates.github.asset-name", "");
         if (preferredAssetName == null) {
             preferredAssetName = "";
         }
@@ -310,7 +310,7 @@ public class UpdateManager {
     }
 
     private boolean isEnabled() {
-        return main.getConfig().getBoolean("update.enabled", true);
+        return main.getConfig().getBoolean("updates.enabled", true);
     }
 
     private String normalizeVersion(String rawVersion) {

@@ -43,7 +43,7 @@ public class AbilitiesManager {
             return;
 
         long now = System.currentTimeMillis();
-        int cdSeconds = main.getConfig().getInt("warpShadowsCooldown");
+        int cdSeconds = main.getConfig().getInt("casual.warp-shadows.cooldown-seconds");
         MiniMessage mm = MiniMessage.miniMessage();
         if (now - hunter.getLastWarpShadows() < cdSeconds * 1000L) {
             long remaining = (cdSeconds * 1000L - (now - hunter.getLastWarpShadows())) / 1000;
@@ -58,8 +58,8 @@ public class AbilitiesManager {
         }
 
         double distance = p.getLocation().distance(targetLoc);
-        int maxDist = main.getConfig().getInt("warpShadowsMaxDistance");
-        int buffer = main.getConfig().getInt("warpShadowsBufferZone");
+        int maxDist = main.getConfig().getInt("casual.warp-shadows.max-distance");
+        int buffer = main.getConfig().getInt("casual.warp-shadows.buffer-zone");
 
         if (distance <= (maxDist + buffer)) {
             p.sendMessage(mm.deserialize(
@@ -89,7 +89,7 @@ public class AbilitiesManager {
                 Location potential = null;
                 if (s != null && s.getWorld().equals(hunterPlayer.getWorld())) {
                     potential = s.getLocation();
-                } else if (main.getConfig().getBoolean("trackPortals")) {
+                } else if (main.getConfig().getBoolean("compass.track-portals")) {
                     potential = getLastKnownLocation(sObj, hunterPlayer.getWorld().getEnvironment());
                 }
                 if (potential != null && hunterPlayer.getWorld().equals(potential.getWorld())) {
@@ -116,7 +116,7 @@ public class AbilitiesManager {
 
             if (target != null && target.getWorld().equals(hunterPlayer.getWorld())) {
                 return target.getLocation();
-            } else if (main.getConfig().getBoolean("trackPortals")) {
+            } else if (main.getConfig().getBoolean("compass.track-portals")) {
                 return getLastKnownLocation(sObj, hunterPlayer.getWorld().getEnvironment());
             }
         }

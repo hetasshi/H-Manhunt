@@ -29,7 +29,7 @@ public class AbilitiesController implements Listener {
     @EventHandler
     public void onInteract(PlayerInteractEvent e) {
         Player p = e.getPlayer();
-        if (!main.getConfig().getBoolean("casual") || !isHunter(p.getName()) || (!inGame && !waitingForStart))
+        if (!main.getConfig().getBoolean("casual.enabled") || !isHunter(p.getName()) || (!inGame && !waitingForStart))
             return;
 
         ItemStack item = e.getItem();

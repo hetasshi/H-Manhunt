@@ -5,6 +5,7 @@ import me.matistan05.minecraftmanhunt.abilities.gui.AbilitiesMenu;
 import me.matistan05.minecraftmanhunt.abilities.listeners.AbilitiesController;
 import me.matistan05.minecraftmanhunt.commands.ManhuntCommand;
 import me.matistan05.minecraftmanhunt.commands.ManhuntCompleter;
+import me.matistan05.minecraftmanhunt.managers.ConfigUpdater;
 import me.matistan05.minecraftmanhunt.managers.MatchWorldManager;
 import me.matistan05.minecraftmanhunt.managers.UpdateManager;
 import me.matistan05.minecraftmanhunt.listeners.*;
@@ -15,11 +16,15 @@ import static me.matistan05.minecraftmanhunt.commands.ManhuntCommand.waitingForS
 import static me.matistan05.minecraftmanhunt.commands.ManhuntCommand.reset;
 
 public final class Main extends JavaPlugin {
+    private ConfigUpdater configUpdater;
     private UpdateManager updateManager;
     private MatchWorldManager matchWorldManager;
 
     public void onEnable() {
-        saveDefaultConfig();
+        configUpdater = new ConfigUpdater(this);
+        configUpdater.updateOnStartup();
+        reloadConfig();
+
         updateManager = new UpdateManager(this);
         matchWorldManager = new MatchWorldManager(this);
 
@@ -44,8 +49,8 @@ public final class Main extends JavaPlugin {
         String o = net.md_5.bungee.api.ChatColor.of("#eb5e28").toString();
         String w = net.md_5.bungee.api.ChatColor.of("#fffcf2").toString();
         String g = net.md_5.bungee.api.ChatColor.of("#ccc5b9").toString();
-        boolean autoUpdaterEnabled = getConfig().getBoolean("update.enabled", true)
-                && getConfig().getBoolean("update.checkOnStartup", true);
+        boolean autoUpdaterEnabled = getConfig().getBoolean("updates.enabled", true)
+                && getConfig().getBoolean("updates.check-on-startup", true);
         String autoUpdaterStatus = autoUpdaterEnabled ? w + "enabled" : g + "disabled";
         getServer().getConsoleSender().sendMessage(new String[] {
                 "",
@@ -71,6 +76,10 @@ public final class Main extends JavaPlugin {
 
     public UpdateManager getUpdateManager() {
         return updateManager;
+    }
+
+    public ConfigUpdater getConfigUpdater() {
+        return configUpdater;
     }
 
     public MatchWorldManager getMatchWorldManager() {

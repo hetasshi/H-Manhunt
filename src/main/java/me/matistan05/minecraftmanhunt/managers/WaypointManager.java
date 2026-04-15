@@ -116,7 +116,7 @@ public class WaypointManager {
                     if (sp != null && hunter.getWorld().equals(sp.getWorld())) {
                         potentialLoc = sp.getLocation();
                     }
-                    else if (main.getConfig().getBoolean("trackPortals")) {
+                    else if (main.getConfig().getBoolean("compass.track-portals")) {
                         if (hunter.getWorld().getEnvironment() == World.Environment.NORMAL)
                             potentialLoc = s.getLocWorld();
                         else if (hunter.getWorld().getEnvironment() == World.Environment.NETHER)
@@ -139,7 +139,7 @@ public class WaypointManager {
                 Location potentialLoc = null;
                 if (target != null && hunter.getWorld().equals(target.getWorld())) {
                     potentialLoc = target.getLocation();
-                } else if (main.getConfig().getBoolean("trackPortals")) {
+                } else if (main.getConfig().getBoolean("compass.track-portals")) {
                     if (hunter.getWorld().getEnvironment() == World.Environment.NORMAL)
                         potentialLoc = targetSpeedrunner.getLocWorld();
                     else if (hunter.getWorld().getEnvironment() == World.Environment.NETHER)
@@ -200,7 +200,7 @@ public class WaypointManager {
     }
 
     public void setupWaypoints(Player player, String role) {
-        boolean useBossBar = main.getConfig().getBoolean("useBossBarRadar", true);
+        boolean useBossBar = main.getConfig().getBoolean("compass.bossbar-radar", true);
         double transmitRange = 0;
         double receiveRange = 0;
 

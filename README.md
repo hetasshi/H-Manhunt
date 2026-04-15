@@ -53,7 +53,7 @@
 
 *   **Быстрое управление:** Роли охотников и спидраннеров удобно настраиваются через команды `/manhunt`.
 *   **Продвинутый трекинг:** Компас умеет отслеживать либо ближайшую цель, либо конкретного выбранного игрока.
-*   **Межпространственная охота:** При включённом `trackPortals` компас не теряет цель после перехода в Незер или Энд и показывает последний портал.
+*   **Межпространственная охота:** При включённом `compass.track-portals` компас не теряет цель после перехода в Незер или Энд и показывает последний портал.
 *   **Система пауз:** Матч можно поставить на паузу через голосование, если возникли технические проблемы или просто нужен перерыв.
 *   **Способности (Casual Mode):** Для охотников доступны особые навыки, например **Warp Shadows** - быстрый варп в сторону цели, который помогает не терять темп погони.
 
@@ -81,42 +81,49 @@
 
 | Ключ | Тип | По умолчанию | Описание |
 |---|---|---|---|
-| `timeSetDayOnStart` | boolean | `true` | Установить день при старте матча |
-| `weatherClearOnStart` | boolean | `true` | Очистить погоду при старте матча |
-| `headStartDuration` | int | `0` | Фора спидраннерам (секунды) |
-| `speedrunnersLives` | int | `1` | Количество жизней спидраннеров |
-| `spectatorAfterDeath` | boolean | `true` | Переводить погибших в spectator |
-| `teleport` | boolean | `true` | Телепорт участников в одну точку перед стартом |
-| `trackPortals` | boolean | `true` | Отслеживать цель между измерениями |
-| `friendlyFire` | boolean | `true` | Урон по союзникам |
-| `compassMenu` | boolean | `false` | Выбор цели через GUI-меню |
-| `trackNearestMode` | boolean | `true` | Режим трекинга ближайшего спидраннера |
-| `clearInventories` | boolean | `true` | Очищать инвентари при старте |
-| `takeAwayOps` | boolean | `true` | Временно снимать OP во время матча |
-| `usePermissions` | boolean | `false` | Проверять права на команды |
-| `useBossBarRadar` | boolean | `false` | BossBar-радар союзников |
-| `enablePauses` | boolean | `true` | Разрешить паузу/возобновление |
-| `matchWorlds.enabled` | boolean | `false` | Включить автоматическое создание отдельного матч-мира |
-| `matchWorlds.autoGenerate.worldPrefix` | string | `manhunt_match_` | Префикс имени для новых миров |
-| `matchWorlds.autoGenerate.keepLatestWorlds` | int | `2` | Сколько последних автосозданных миров хранить |
-| `matchWorlds.autoGenerate.maxAttempts` | int | `4` | Сколько сидов пробовать при подборе мира |
-| `matchWorlds.autoGenerate.minScoreToAccept` | int | `90` | Порог качества мира для мгновенного принятия |
-| `matchWorlds.autoGenerate.acceptBestCandidateIfThresholdMissed` | boolean | `true` | Брать лучший мир, если идеальный не найден |
-| `matchWorlds.autoGenerate.fixedSeeds` | list | `[]` | Список ручных сидов вместо случайных |
-| `matchWorlds.autoGenerate.preferVillageWithSmithBuilding` | boolean | `true` | Предпочитать деревни с weaponsmith/toolsmith/armorer-постройкой |
-| `matchWorlds.autoGenerate.requireVillageWithSmithBuilding` | boolean | `true` | Считать деревню подходящей только если в ней найден smith-building |
-| `matchWorlds.autoGenerate.villageSmithSearchRadiusBlocks` | int | `64` | Радиус проверки деревни на smith-building вокруг её центра |
-| `matchWorlds.autoGenerate.rareStructureSearchRadiusChunks` | int | `32` | Радиус поиска редких структур вроде особняка и башни илладжеров |
-| `matchWorlds.autoGenerate.anchorWeights.village` | int | `100` | Вес деревни при случайном выборе якорной структуры |
-| `matchWorlds.autoGenerate.anchorWeights.ruinedPortal` | int | `100` | Вес разрушенного портала при случайном выборе якорной структуры |
-| `matchWorlds.autoGenerate.anchorWeights.shipwreck` | int | `100` | Вес корабля при случайном выборе якорной структуры |
-| `matchWorlds.autoGenerate.anchorWeights.pillagerOutpost` | int | `100` | Вес башни илладжеров при случайном выборе якорной структуры |
-| `matchWorlds.autoGenerate.anchorWeights.woodlandMansion` | int | `100` | Вес особняка илладжеров при случайном выборе якорной структуры |
-| `matchWorlds.autoGenerate.startDistanceFromAnchor` | int | `100` | На каком расстоянии от ключевой структуры ставить стартовую точку и спавн матча |
-| `casual` | boolean | `true` | Способности охотников (Shift + ПКМ по компасу) |
-| `warpShadowsCooldown` | int | `300` | Кулдаун Warp Shadows (секунды) |
-| `warpShadowsMaxDistance` | int | `200` | Дистанция до цели после варпа |
-| `warpShadowsBufferZone` | int | `40` | Порог, ближе которого варп не срабатывает |
+| `gameplay.day-on-start` | boolean | `true` | Установить день при старте матча |
+| `gameplay.weather-clear-on-start` | boolean | `true` | Очистить погоду при старте матча |
+| `gameplay.head-start-seconds` | int | `0` | Фора спидраннерам (секунды) |
+| `gameplay.speedrunners-lives` | int | `1` | Количество жизней спидраннеров |
+| `gameplay.spectator-after-death` | boolean | `true` | Переводить погибших в spectator |
+| `gameplay.teleport-on-start` | boolean | `true` | Телепорт участников в одну точку перед стартом |
+| `compass.track-portals` | boolean | `true` | Отслеживать цель между измерениями |
+| `gameplay.friendly-fire` | boolean | `true` | Урон по союзникам |
+| `compass.menu-enabled` | boolean | `false` | Выбор цели через GUI-меню |
+| `compass.track-nearest-mode` | boolean | `true` | Режим трекинга ближайшего спидраннера |
+| `gameplay.clear-inventories` | boolean | `true` | Очищать инвентари при старте |
+| `gameplay.take-away-ops` | boolean | `true` | Временно снимать OP во время матча |
+| `permissions.enabled` | boolean | `false` | Проверять права на команды |
+| `compass.bossbar-radar` | boolean | `false` | BossBar-радар союзников |
+| `gameplay.pause-enabled` | boolean | `true` | Разрешить паузу/возобновление |
+| `match-worlds.enabled` | boolean | `false` | Включить автоматическое создание отдельного матч-мира |
+| `match-worlds.auto-generate.world-prefix` | string | `manhunt_match_` | Префикс имени для новых миров |
+| `match-worlds.auto-generate.keep-latest-worlds` | int | `2` | Сколько последних автосозданных миров хранить |
+| `match-worlds.auto-generate.max-attempts` | int | `4` | Сколько сидов пробовать при подборе мира |
+| `match-worlds.auto-generate.min-score-to-accept` | int | `90` | Порог качества мира для мгновенного принятия |
+| `match-worlds.auto-generate.accept-best-candidate-if-threshold-missed` | boolean | `true` | Брать лучший мир, если идеальный не найден |
+| `match-worlds.auto-generate.fixed-seeds` | list | `[]` | Список ручных сидов вместо случайных |
+| `match-worlds.auto-generate.village.prefer-smith-building` | boolean | `true` | Предпочитать деревни с weaponsmith/toolsmith/armorer-постройкой |
+| `match-worlds.auto-generate.village.require-smith-building` | boolean | `true` | Считать деревню подходящей только если в ней найден smith-building |
+| `match-worlds.auto-generate.village.smith-search-radius-blocks` | int | `64` | Радиус проверки деревни на smith-building вокруг её центра |
+| `match-worlds.auto-generate.rare-structure-search-radius-chunks` | int | `32` | Радиус поиска редких структур вроде особняка и башни илладжеров |
+| `match-worlds.auto-generate.anchor-weights.village` | int | `100` | Вес деревни при случайном выборе якорной структуры |
+| `match-worlds.auto-generate.anchor-weights.ruined-portal` | int | `100` | Вес разрушенного портала при случайном выборе якорной структуры |
+| `match-worlds.auto-generate.anchor-weights.shipwreck` | int | `100` | Вес корабля при случайном выборе якорной структуры |
+| `match-worlds.auto-generate.anchor-weights.pillager-outpost` | int | `100` | Вес башни илладжеров при случайном выборе якорной структуры |
+| `match-worlds.auto-generate.anchor-weights.woodland-mansion` | int | `100` | Вес особняка илладжеров при случайном выборе якорной структуры |
+| `match-worlds.auto-generate.start-distance-from-anchor` | int | `100` | На каком расстоянии от ключевой структуры ставить стартовую точку и спавн матча |
+| `casual.enabled` | boolean | `true` | Способности охотников (Shift + ПКМ по компасу) |
+| `casual.warp-shadows.cooldown-seconds` | int | `300` | Кулдаун Warp Shadows (секунды) |
+| `casual.warp-shadows.max-distance` | int | `200` | Дистанция до цели после варпа |
+| `casual.warp-shadows.buffer-zone` | int | `40` | Порог, ближе которого варп не срабатывает |
+
+При запуске сервер автоматически синхронизирует `config.yml` с актуальным вариантом из jar:
+
+* добавляются только новые ключи;
+* существующие пользовательские значения не перезаписываются;
+* комментарии и порядок сохраняются;
+* на случай сбоя создается резервная копия `config.yml.bak`.
 
 ### Автоматическая генерация матч-мира
 
@@ -152,11 +159,11 @@
 
 **Warp Shadows (Варп тени)** - это способность охотника, которая позволяет телепортироваться в сторону спидраннера. Она нужна, чтобы сократить дистанцию, когда цель ушла слишком далеко и погоня начинает замедляться.
 
-Охотник не появляется прямо рядом с целью: он приземляется на расстоянии `warpShadowsMaxDistance` блоков и дальше продолжает преследование сам. Если охотник уже достаточно близко, то есть ближе чем `maxDistance + bufferZone`, варп не сработает - способность не даёт нечестного преимущества в ближнем бою.
+Охотник не появляется прямо рядом с целью: он приземляется на расстоянии `casual.warp-shadows.max-distance` блоков и дальше продолжает преследование сам. Если охотник уже достаточно близко, то есть ближе чем `maxDistance + bufferZone`, варп не сработает - способность не даёт нечестного преимущества в ближнем бою.
 
 Активация: **Shift + ПКМ** по компасу охотника → меню способностей → Варп тени.
 
-Если спидраннер ушёл в другое измерение, то есть в Незер или Энд, и включён `trackPortals: true`, варп работает по тому же принципу: способность берёт последние сохранённые координаты цели в мире охотника и телепортирует к точке последнего портала. Благодаря этому охотник не теряет след даже при переходах между измерениями.
+Если спидраннер ушёл в другое измерение, то есть в Незер или Энд, и включён `compass.track-portals: true`, варп работает по тому же принципу: способность берёт последние сохранённые координаты цели в мире охотника и телепортирует к точке последнего портала. Благодаря этому охотник не теряет след даже при переходах между измерениями.
 
 <div align="center">
 
@@ -180,7 +187,7 @@
 
 ## Права доступа
 
-> Работают только при `usePermissions: true`
+> Работают только при `permissions.enabled: true`
 
 | Permission | Описание |
 |---|---|
