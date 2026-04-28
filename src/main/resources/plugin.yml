@@ -22,5 +22,8 @@ permissions:
       manhunt.rules: true
       manhunt.help: true
       manhunt.update: true
+      manhunt.worlds: true
   manhunt.update:
     description: Allows the player to check and download plugin updates
+  manhunt.worlds:
+    description: Allows the player to manage prepared match worlds

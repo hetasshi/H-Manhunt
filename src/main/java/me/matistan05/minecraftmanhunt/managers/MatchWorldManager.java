@@ -14,17 +14,25 @@ public class MatchWorldManager {
     private final Main main;
     private final MatchWorldLifecycleManager lifecycleManager;
     private final MatchWorldEvaluator evaluator;
+    private final MatchWorldPoolManager poolManager;
     private MatchWorldSession activeSession;
 
     public MatchWorldManager(Main main) {
         this.main = main;
         this.lifecycleManager = new MatchWorldLifecycleManager(main);
         this.evaluator = new MatchWorldEvaluator(main);
+        this.poolManager = new MatchWorldPoolManager(main, lifecycleManager, evaluator);
     }
 
     public PreparedMatchWorld prepareMatchWorld() {
         if (!main.getConfig().getBoolean("match-worlds.enabled", false)) {
             return PreparedMatchWorld.disabled();
+        }
+
+        if (poolManager.isEnabled()) {
+            return poolManager.takeReadyCandidate()
+                    .map(this::activateCandidate)
+                    .orElseGet(() -> PreparedMatchWorld.failure(buildPoolEmptyMessage()));
         }
 
         lifecycleManager.cleanupUnusedAutoWorlds(activeSession == null ? null : activeSession.baseWorldName());
@@ -71,10 +79,32 @@ public class MatchWorldManager {
             return;
         }
         if (activeSession != null) {
-            lifecycleManager.disposeWorldSet(activeSession.baseWorldName());
+            if (poolManager.isEnabled()) {
+                poolManager.releaseActive(activeSession.baseWorldName());
+            } else {
+                lifecycleManager.disposeWorldSet(activeSession.baseWorldName());
+            }
             activeSession = null;
         }
-        lifecycleManager.cleanupUnusedAutoWorlds(null);
+        if (!poolManager.isEnabled()) {
+            lifecycleManager.cleanupUnusedAutoWorlds(null);
+        }
+    }
+
+    public void preparePoolOnStartupIfNeeded() {
+        poolManager.prepareOnStartupIfNeeded();
+    }
+
+    public void startPoolBatchPreparation() {
+        poolManager.startBatchPreparation();
+    }
+
+    public MatchWorldPoolManager.PoolStatus getPoolStatus() {
+        return poolManager.status();
+    }
+
+    public int clearPool(boolean includeActive) {
+        return poolManager.clear(includeActive);
     }
 
     public String getRunnerHintMessage() {
@@ -123,6 +153,14 @@ public class MatchWorldManager {
     private String nextBaseWorldName() {
         String prefix = main.getConfig().getString("match-worlds.auto-generate.world-prefix", "manhunt_match_");
         return prefix + System.currentTimeMillis();
+    }
+
+    private String buildPoolEmptyMessage() {
+        MatchWorldPoolManager.PoolStatus status = poolManager.status();
+        if (status.batchRunning() || status.preparing() > 0) {
+            return "Пул матч-миров еще готовится. Готово: " + status.ready() + ".";
+        }
+        return "В пуле нет готовых матч-миров. Запустите /manhunt worlds prepare.";
     }
 
     public record PreparedMatchWorld(boolean enabled, boolean success, MatchWorldCandidate candidate, String detailMessage) {

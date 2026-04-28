@@ -29,6 +29,9 @@ import java.time.Duration;
 import java.util.*;
 
 public class ManhuntCommand implements CommandExecutor {
+    private static final String WORLDS_USAGE = "<gray>Использование: <white>/manhunt worlds status</white>, "
+            + "<white>/manhunt worlds prepare</white>, <white>/manhunt worlds clear</white>";
+
     private static Main main;
     public static List<Hunter> hunters = new ArrayList<>();
     public static List<Speedrunner> speedrunners = new ArrayList<>();
@@ -97,12 +100,16 @@ public class ManhuntCommand implements CommandExecutor {
                     "<dark_gray>» <gradient:#ff8888:#ffcccc>/manhunt list</gradient> <gray>- список игроков"));
             p.sendMessage(
                     mm.deserialize("<dark_gray>» <gradient:#ff8888:#ffcccc>/manhunt rules</gradient> <gray>- правила"));
+            p.sendMessage(
+                    mm.deserialize("<dark_gray>» <gradient:#ff8888:#ffcccc>/manhunt worlds</gradient> <gray>- пул матч-миров"));
             p.sendMessage(mm.deserialize(
                     "<dark_gray>» <gradient:#88ff88:#ccffcc>/manhunt update check</gradient> <gray>- проверить обновления"));
             p.sendMessage(mm.deserialize(
                     "<dark_gray>» <gradient:#88ff88:#ccffcc>/manhunt update download</gradient> <gray>- скачать обновление"));
             p.sendMessage(mm.deserialize(
                     "<gradient:#ff0000:#ffffff><strikethrough>----------------------------------</strikethrough></gradient>"));
+        } else if (args[0].equals("worlds")) {
+            return handleWorldsCommand(p, args);
         } else if (args[0].equals("update")) {
             if (!canUseUpdateCommand(p)) {
                 p.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
@@ -392,6 +399,7 @@ public class ManhuntCommand implements CommandExecutor {
             }
             if (preparedMatchWorld.enabled()) {
                 startLocation = preparedMatchWorld.candidate().startLocation();
+                applyStartWorldRules(preparedMatchWorld.candidate().world());
                 if (preparedMatchWorld.detailMessage() != null) {
                     p.sendMessage(mm.deserialize("<gray>Выбран матч-мир: <white>"
                             + preparedMatchWorld.candidate().world().getName()
@@ -603,6 +611,54 @@ public class ManhuntCommand implements CommandExecutor {
 
     private boolean canUseUpdateCommand(CommandSender sender) {
         return sender.isOp() || sender.hasPermission("manhunt.update");
+    }
+
+    private boolean handleWorldsCommand(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("manhunt.worlds") && main.getConfig().getBoolean("permissions.enabled")) {
+            sender.sendMessage(mm.deserialize("<red>У вас нет прав на использование этой команды."));
+            return true;
+        }
+        if (args.length < 2 || args.length > 3) {
+            sendWorldsUsage(sender);
+            return true;
+        }
+
+        if (args[1].equals("status")) {
+            sendWorldsStatus(sender);
+            return true;
+        }
+        if (args[1].equals("prepare")) {
+            main.getMatchWorldManager().startPoolBatchPreparation();
+            sender.sendMessage(mm.deserialize("<gray>Подготовка партии матч-миров запущена."));
+            return true;
+        }
+        if (args[1].equals("clear")) {
+            clearWorldPool(sender, args);
+            return true;
+        }
+
+        sendWorldsUsage(sender);
+        return true;
+    }
+
+    private void sendWorldsStatus(CommandSender sender) {
+        var status = main.getMatchWorldManager().getPoolStatus();
+        sender.sendMessage(mm.deserialize("<gray>Пул матч-миров: READY=<white>" + status.ready()
+                + "</white>, PREPARING=<white>" + status.preparing()
+                + "</white>, ACTIVE=<white>" + status.active()
+                + "</white>, USED=<white>" + status.used()
+                + "</white>, FAILED=<white>" + status.failed()
+                + "</white>, batch=<white>" + (status.batchRunning() ? "running" : "idle") + "</white>"));
+    }
+
+    private void clearWorldPool(CommandSender sender, String[] args) {
+        boolean includeActive = args.length == 3 && args[2].equals("--all");
+        int deleted = main.getMatchWorldManager().clearPool(includeActive);
+        sender.sendMessage(mm.deserialize("<gray>Удалено записей пула: <white>" + deleted + "</white>."));
+    }
+
+    private void sendWorldsUsage(CommandSender sender) {
+        sender.sendMessage(mm.deserialize(WORLDS_USAGE));
     }
 
     public static void removePlayer(String name) {
@@ -841,6 +897,18 @@ public class ManhuntCommand implements CommandExecutor {
     private static void setWeatherAllWorlds(boolean storm) {
         for (World world : Bukkit.getWorlds()) {
             world.setStorm(storm);
+        }
+    }
+
+    private static void applyStartWorldRules(World world) {
+        if (world == null) {
+            return;
+        }
+        if (main.getConfig().getBoolean("gameplay.day-on-start")) {
+            world.setTime(0);
+        }
+        if (main.getConfig().getBoolean("gameplay.weather-clear-on-start")) {
+            world.setStorm(false);
         }
     }
 

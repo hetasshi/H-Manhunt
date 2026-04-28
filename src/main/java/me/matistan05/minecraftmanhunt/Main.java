@@ -65,6 +65,7 @@ public final class Main extends JavaPlugin {
         });
 
         updateManager.checkOnStartup();
+        matchWorldManager.preparePoolOnStartupIfNeeded();
     }
 
     @Override

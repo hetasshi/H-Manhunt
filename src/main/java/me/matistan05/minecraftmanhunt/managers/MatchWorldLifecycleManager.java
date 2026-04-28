@@ -36,6 +36,10 @@ public class MatchWorldLifecycleManager {
         return overworld;
     }
 
+    public World loadMatchWorldSet(String baseWorldName, long seed) {
+        return createMatchWorldSet(baseWorldName, seed);
+    }
+
     private World createWorld(String worldName, long seed, World.Environment environment) {
         WorldCreator creator = WorldCreator.name(worldName)
                 .generateStructures(true)
@@ -78,6 +82,15 @@ public class MatchWorldLifecycleManager {
     public void disposeWorldSet(String baseWorldName) {
         for (String worldName : getWorldNamesForBase(baseWorldName)) {
             disposeWorld(worldName);
+        }
+    }
+
+    public void unloadWorldSet(String baseWorldName) {
+        for (String worldName : getWorldNamesForBase(baseWorldName)) {
+            World world = Bukkit.getWorld(worldName);
+            if (world != null && world.getPlayers().isEmpty()) {
+                Bukkit.unloadWorld(world, true);
+            }
         }
     }
 

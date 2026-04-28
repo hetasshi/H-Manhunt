@@ -41,8 +41,27 @@ compass:
   bossbar-radar: false
 
 match-worlds:
-  # Автоматически генерировать отдельный мир матча при /manhunt start
+  # Использовать отдельные матч-миры вместо текущего мира сервера
   enabled: true
+  pool:
+    # Брать матч-миры из заранее подготовленной партии
+    enabled: true
+    # Сколько комплектов миров готовить за одну партию
+    batch-size: 10
+    # Префикс для миров пула
+    world-prefix: "manhunt_pool_"
+    # Если при старте сервера нет готовых миров, начать подготовку партии
+    prepare-on-startup-if-empty: true
+    # Задержка перед автоподготовкой после запуска сервера
+    prepare-startup-delay-seconds: 10
+    # Пауза между подготовкой отдельных комплектов мира
+    delay-between-worlds-seconds: 20
+    # Держать лучший READY-комплект загруженным, остальные выгружать на диск
+    unload-ready-worlds: true
+    # Не возвращать тяжелую генерацию в /manhunt start, если пул пуст
+    generate-on-start-if-empty: false
+    # Удалять использованный комплект после reset/конца матча
+    delete-used-worlds: true
   auto-generate:
     # Префикс для новых миров матча
     world-prefix: "manhunt_match_"

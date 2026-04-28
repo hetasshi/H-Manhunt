@@ -73,6 +73,9 @@
 | `/manhunt unpause` | Снять паузу |
 | `/manhunt list` | Список участников и ролей |
 | `/manhunt rules <rule> [value]` | Посмотреть/изменить правило |
+| `/manhunt worlds status` | Посмотреть состояние пула матч-миров |
+| `/manhunt worlds prepare` | Запустить подготовку партии матч-миров |
+| `/manhunt worlds clear` | Очистить неактивные миры пула |
 | `/manhunt help` | Справка |
 
 ---
@@ -97,6 +100,15 @@
 | `compass.bossbar-radar` | boolean | `false` | BossBar-радар союзников |
 | `gameplay.pause-enabled` | boolean | `true` | Разрешить паузу/возобновление |
 | `match-worlds.enabled` | boolean | `false` | Включить автоматическое создание отдельного матч-мира |
+| `match-worlds.pool.enabled` | boolean | `true` | Использовать заранее подготовленную партию матч-миров |
+| `match-worlds.pool.batch-size` | int | `10` | Сколько комплектов миров готовить за одну партию |
+| `match-worlds.pool.world-prefix` | string | `manhunt_pool_` | Префикс имён миров в пуле |
+| `match-worlds.pool.prepare-on-startup-if-empty` | boolean | `true` | При старте сервера готовить партию, если READY-миров нет |
+| `match-worlds.pool.prepare-startup-delay-seconds` | int | `10` | Задержка перед автоподготовкой после запуска сервера |
+| `match-worlds.pool.delay-between-worlds-seconds` | int | `20` | Пауза между подготовкой отдельных комплектов мира |
+| `match-worlds.pool.unload-ready-worlds` | boolean | `true` | Держать лучший READY-комплект загруженным, остальные выгружать на диск |
+| `match-worlds.pool.generate-on-start-if-empty` | boolean | `false` | Разрешить запуск подготовки при `/manhunt start`, если пул пуст |
+| `match-worlds.pool.delete-used-worlds` | boolean | `true` | Удалять использованный комплект после сброса матча |
 | `match-worlds.auto-generate.world-prefix` | string | `manhunt_match_` | Префикс имени для новых миров |
 | `match-worlds.auto-generate.keep-latest-worlds` | int | `2` | Сколько последних автосозданных миров хранить |
 | `match-worlds.auto-generate.max-attempts` | int | `4` | Сколько сидов пробовать при подборе мира |
@@ -127,9 +139,21 @@
 
 ### Автоматическая генерация матч-мира
 
-`H-Manhunt` можно перевести в режим полной автоматизации старта матча. В этом случае `/manhunt start` не берёт текущий мир сервера, а сам:
+`H-Manhunt` можно перевести в режим полной автоматизации старта матча. По умолчанию плагин использует пул заранее подготовленных матч-миров: тяжёлая генерация и поиск структур выполняются до матча, а `/manhunt start` берёт уже готовый комплект.
+
+Один комплект пула включает:
+
+*   overworld;
+*   Nether;
+*   End;
+*   выбранную стартовую точку;
+*   score мира;
+*   подсказку для спидраннера.
+
+Если пул отключён через `match-worlds.pool.enabled: false`, `/manhunt start` работает в legacy-режиме и сам:
 
 *   создаёт новый overworld через Paper `WorldCreator`;
+*   создаёт связанные Nether и End;
 *   перебирает несколько сидов;
 *   оценивает каждый мир по эвристике вокруг спавна;
 *   выбирает лучший вариант и переносит туда игроков;
@@ -154,6 +178,15 @@
 *   стартовая точка выбирается случайно по весам среди найденных структур;
 *   по умолчанию все якорные структуры имеют одинаковый вес, поэтому корабль, портал, деревня и редкие структуры выбираются равноправно;
 *   спидраннер получает короткую подсказку по направлению к ближайшей полезной структуре.
+
+Команды управления пулом:
+
+| Команда | Описание |
+|---|---|
+| `/manhunt worlds status` | Показать количество READY/PREPARING/ACTIVE/USED/FAILED миров |
+| `/manhunt worlds prepare` | Запустить подготовку новой партии вручную |
+| `/manhunt worlds clear` | Удалить неактивные миры пула |
+| `/manhunt worlds clear --all` | Удалить весь пул, включая активный комплект |
 
 ### Как работает Warp Shadows?
 
@@ -200,6 +233,7 @@
 | `manhunt.unpause` | Снятие паузы без голосования |
 | `manhunt.list` | Просмотр состава |
 | `manhunt.rules` | Просмотр/изменение правил |
+| `manhunt.worlds` | Управление пулом подготовленных матч-миров |
 | `manhunt.help` | Справка |
 
 ---

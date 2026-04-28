@@ -54,8 +54,25 @@ public class ManhuntCompleter implements TabCompleter {
             if (startsWith("rules", args[0])) {
                 list.add("rules");
             }
+            if (startsWith("worlds", args[0])) {
+                list.add("worlds");
+            }
             if (startsWith("update", args[0])) {
                 list.add("update");
+            }
+        } else if (args.length == 2 && args[0].equals("worlds")) {
+            if (startsWith("status", args[1])) {
+                list.add("status");
+            }
+            if (startsWith("prepare", args[1])) {
+                list.add("prepare");
+            }
+            if (startsWith("clear", args[1])) {
+                list.add("clear");
+            }
+        } else if (args.length == 3 && args[0].equals("worlds") && args[1].equals("clear")) {
+            if (startsWith("--all", args[2])) {
+                list.add("--all");
             }
         } else if (args.length == 2 && args[0].equals("update")) {
             if (startsWith("check", args[1])) {
